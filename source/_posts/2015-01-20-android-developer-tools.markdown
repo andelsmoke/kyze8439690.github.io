@@ -34,3 +34,5 @@ categories: android
 需要注意的是saveInstance是一个遍历操作，从高层到底层，换句话说，从activity到fragment，fragment到viewgroup，viewgroup到view，一层一层地调用saveInstance方法。反之，恢复的时候也是这样。Fragment/ViewGroup/View的状态保存需要一个条件：必须拥有id或者tag。这是保存状态时使用的标识。而什么状态需要保存呢？聚个栗子🌰，activity/view/viewGroup/fragment中的自定义变量，没有用持久化保存（sqlite，sharedPreference等）的数据，都需要用bundle保存起来。  
 
 回到主题，不保留活动选项，正是用来调试这个情况的。由于你无法预知系统什么时候会回收activity释放内存空间，我们需要手动触发他。打开这个选项之后，每一个不是visible的activity，都会直接被调用onSavedInstance并destory掉。所以，你只需要打开不保留活动，打开你要测试的activity，按home键回到桌面，再返回这个activity并观察现象尽可。如果状态恢复有问题，这时候应该会发生一个NPE（NullPointerException），或者视图上的数据显示有问题。这时再根据情况修改代码即可。
+  
+最后附上cyrilmottier大大有关android状态恢复的[ppt](/attachments/deepdiveintoandroidrestorationbycyrilmottier-140924114735-phpapp02.pdf)，网络情况的好的直接看[原链接](http://www.slideshare.net/parisandroidug/deep-dive-into-android-restoration-droidcon-paris-2014)。
