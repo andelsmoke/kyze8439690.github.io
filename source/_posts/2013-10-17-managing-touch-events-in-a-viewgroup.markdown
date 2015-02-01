@@ -8,6 +8,8 @@ categories: Android, Translate
   
 在一个[```ViewGroup```][1]中处理touch events需要格外注意。因为在[```ViewGroup```][1]里面有着各种要处理不同touch events的子view，这是很常见的。为了确保每个view能正确地获取到属于他的touch events，我们必须覆盖[```onInterceptTouchEvent()```][2]函数。
 
+<!--more-->
+
 ------------
 ####ViewGroup中的Touch Events
 当在一个[```ViewGroup```][1]表面，或者里面的子view表面检测到一个touch event的时候，会调用[```ViewGroup```][1]的[```onInterceptTouchEvent()```][2]函数。如果[```onInterceptTouchEvent()```][2]函数返回true时，这个MotionEvent将会被截断，也就意味着，不会传递给子view，而是交给父层([```ViewGroup```][1])的[```onTouchEvent```][4]函数处理。
