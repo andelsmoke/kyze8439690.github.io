@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "view and viewgroup's measure layout and draw"
+title: "view and ViewGroup's measure layout and draw"
 date: 2015-05-19 16:35:34 +0800
 comments: true
 categories: android
@@ -8,6 +8,9 @@ categories: android
 
 - Begin from ViewRoot's performTrasversals() -> performMeasure() -> performLayout() -> performDraw()
 - Measure: pass measurespec to all children and ask them to measure themselves base on the measurespec value  
+
+	<!--more-->
+
  	- Measure is a traversal procedure, from parent to child.
  	- MeasureSpec is a integer conbination of a size and a mode:
  		- size: size provided by parent to calculate measured size
