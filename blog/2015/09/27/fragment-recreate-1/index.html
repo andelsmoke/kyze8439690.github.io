@@ -1,0 +1,463 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Fragment Recreate(1) - 杨辉的个人博客</title>
+  <meta name="author" content="杨辉">
+
+  
+  <meta name="description" content="说明 一般都是用v4的Fragment实现，可以有getChildFragmentManager()的支持，这里以 v4 版本为例。
+命名 FragmentActivity 源码中的变量命名其实很乱，比如一个 FragmentManagerImpl 的实例，叫做 mFragments， &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yanghui.name/blog/2015/09/27/fragment-recreate-1">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="杨辉的个人博客" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href='https://fonts.googleapis.com/css?family=Noto+Serif:400,700' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-46433471-3']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">杨辉的个人博客</a></h1>
+  
+    <h2>记录编程新的体会.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  
+  
+</ul>
+
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Fragment Recreate(1)</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-09-27T11:14:15+08:00" pubdate data-updated="true">Sep 27th, 2015</time>
+        
+           | <a href="#disqus_thread"
+             data-disqus-identifier="http://yanghui.name">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><ul>
+<li><p>说明</p>
+
+<p>  一般都是用v4的Fragment实现，可以有<code>getChildFragmentManager()</code>的支持，这里以 v4 版本为例。</p></li>
+<li><p>命名</p>
+
+<p>  FragmentActivity 源码中的变量命名其实很乱，比如一个 FragmentManagerImpl 的实例，叫做 mFragments，后面需要注意。</p></li>
+</ul>
+
+
+<!-- more -->
+
+
+<ul>
+<li><p>保存与恢复</p>
+
+<p>  FragmentActivity.onCreate() 中有这样一个函数：<code>getLastNonConfigurationInstance()</code>
+与之相对应的有<code>onRetainNonConfigurationInstance()</code>。</p>
+
+<ul>
+<li><code>onRetainNonConfigurationInstance()</code>：将要保存的实例保存起来，在 recreate 之后恢复。需要注意的是，函数的返回类型是 Object，说明这里保存的是任何实例（Activity，Fragment，etc），而不是 SaveState。与利用 SaveState 新建实例恢复状态不同的方式不同。这个方法在 api level 13 中取消使用。FragmentActivity 中覆盖了Activity 的这个方法，加入了一些额外的 Object，比如一个 Fragment 组和一个 Loader 组。现在要用原来<code>onRetainNonConfigurationInstance()</code>方法来保存 Object 的话，请使用<code>onRetainCustomNonConfigurationInstance()</code>方法。</li>
+<li><code>getLastNonConfigurationInstance()</code>：这个方法返回了一个 NonConfigurationInstances 实例，里面包含了上面所说保存的 Fragment 实例组和 Loader 实例组。</li>
+</ul>
+
+
+<p>  FragmentActivity 利用上面两个函数来还原部分 Fragment 和 Loader。为什么是部分 Fragment 呢？因为这个是有选择的筛选，判断原则就是 fragment 是不是<code>mRetainInstance</code>等于 true。还记得有一个 hold 住 fragment 实例的例子吗？一个包含 AsyncTask 的 fragment，在屏幕旋转 Activity recreate 之后，fragment 中的 AsyncTask 并没有重新跑，而是继续执行。那个例子的关键，就是 fragment 初始化之后，需要调用<code>setRetainIntance(true)</code>方法，将 <code>mRetainInstance</code> 赋值为 true。所以 FragmentActivity 会将所有这种类型的 Fragment 都用 <code>onRetainCustomNonConfigurationInstance()</code> 方法保存起来，以便 AsyncTask 继续执行。</p>
+
+<p>  同理，Loader 本来的作用就是，在 Activity recreate 之后，避免重新 load 的过程。所以 FragmentActivity 也会利用这个方法将<strong>所有</strong> loader 保存起来，recreate 之后复用。</p>
+
+<p>  具体代码如下：</p>
+
+<pre><code class="``java">  public final Object onRetainNonConfigurationInstance() {
+      //...
+      Object custom = onRetainCustomNonConfigurationInstance();    //覆盖这个函数来保存自己的Object
+      ArrayList&lt;Fragment&gt; fragments = mFragments.retainNonConfig();
+      //...
+      if (fragments == null &amp;&amp; !retainLoaders &amp;&amp; custom == null) {
+          return null;
+      }
+
+      NonConfigurationInstances nci = new NonConfigurationInstances();
+      nci.activity = null;
+      nci.custom = custom;
+      nci.children = null;
+      nci.fragments = fragments;
+      nci.loaders = mAllLoaderManagers;
+      return nci;
+  }
+</code></pre>
+
+<p>  <code>retainNonConfig()</code>的实现如下（这函数的命名我也没懂）：</p>
+
+<pre><code class="``java">ArrayList&lt;Fragment&gt; retainNonConfig() {
+      ArrayList&lt;Fragment&gt; fragments = null;
+      if (mActive != null) {
+          for (int i=0; i&lt;mActive.size(); i++) {
+              Fragment f = mActive.get(i);
+              if (f != null &amp;&amp; f.mRetainInstance) {
+                  if (fragments == null) {
+                      fragments = new ArrayList&lt;Fragment&gt;();
+                  }
+                  fragments.add(f);
+                  f.mRetaining = true;
+                  f.mTargetIndex = f.mTarget != null ? f.mTarget.mIndex : -1;
+                  if (DEBUG) Log.v(TAG, "retainNonConfig: keeping retained " + f);
+              }
+          }
+      }
+      return fragments;
+  }
+</code></pre>
+
+<p>  那剩下部分的 fragment 如何恢复呢？这就要靠常见的 create ＋ restore state 模式了。</p>
+
+<p>  android 源码中很多地方都用到这种 create ＋ restore 的模式，比如 Activity，View/ViewGroup，Fragment 等。如果 fragment.mRetainInstance 等于 false，则采用下面的代码来保存（<code>FragmentActivity.onSaveInstanceState()</code>）:</p>
+
+<pre><code class="``java">  protected void onSaveInstanceState(Bundle outState) {
+      super.onSaveInstanceState(outState);
+      Parcelable p = mFragments.saveAllState();
+      if (p != null) {
+          outState.putParcelable(FRAGMENTS_TAG, p);
+      }
+  }
+</code></pre>
+
+<p>  这里的 mFragments 其实是一个 FragmentManagerImpl 实例，前面说过了。他的 onSaveInstanceState 方法中用了一个类，叫做 <code>FragmentState</code>，用来保存 Fragment 的状态。其中包含的关键元素有：</p>
+
+<ul>
+<li>ClassName：fragment 的具体类名</li>
+<li>Index：fragment 在 Activity 中的下标，一个 Activity 含有多个 Fragment</li>
+<li>FragmentId：如果 Fragment 是在 xml 中初始化的话，则为 xml 中的ID，否则和下面的 containerId 一致</li>
+<li>ContainerId：<code>add(R.id.container, mFragment)</code>中的container id</li>
+<li>Tag：add 的时候用的 tag</li>
+<li>Detached：fragment 状态</li>
+<li>Arguments：<code>fragment.setArguments(args)</code>的 Bundle 类型参数</li>
+</ul>
+
+
+<p>  观察上面的元素，可以发现足以重建一个完整的 fragment，类型，参数，状态，id，tag 都有了。而 fragment 内部 View 的状态则用 View 自带的状态恢复机制去恢复。当然这里要求你用标准的模式去初始化一个fragment，new ＋ setArguments()，如果你用new ＋ 自定义setXXX方法的话，那这里就不能正常恢复了。</p>
+
+<p>  两种保存机制对应的恢复代码在 <code>FragmentManager.restoreAllState()</code>中，内容太长这里就不贴了。大致逻辑为：恢复 retain fragments -> 恢复 state fragments -> 指定 target fragment -> 重建 added fragment 组 -> 重建 backStack</p>
+
+<p>  正因为 fragment 自带这种简单的 fragment 恢复机制，我们经常看见很多源码的 activity 的 onCreate 中，如果 savedInstanceState 为 null，才做 fragment traction 操作，避免重复 add。</p></li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">杨辉</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-09-27T11:14:15+08:00" pubdate data-updated="true">Sep 27th, 2015</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/android/'>android</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yanghui.name/blog/2015/09/27/fragment-recreate-1/" data-via="yugy1991" data-counturl="http://yanghui.name/blog/2015/09/27/fragment-recreate-1/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/08/31/tools-namespace-and-support-library-annotations/" title="Previous Post: tools 命名空间的使用与 support library annotations 介绍">&laquo; tools 命名空间的使用与 support library annotations 介绍</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/09/28/fragment-recreate-2/" title="Next Post: Fragment recreate(2)">Fragment recreate(2) &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+  <aside class="sidebar">
+   
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yanghui.name" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/09/28/fragment-recreate-2/">Fragment Recreate(2)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/27/fragment-recreate-1/">Fragment Recreate(1)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/31/tools-namespace-and-support-library-annotations/">Tools 命名空间的使用与 Support Library Annotations 介绍</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/19/make-all-command-through-proxy/">Terminal 代理方案</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/">Why Is ListView&#8217;s HeaderView/FooterView setVisibility(View.GONE) Not Working?</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating&#8230;</li>
+  </ul>
+  
+  <a href="https://github.com/kyze8439690">@kyze8439690</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'kyze8439690',
+            count: 11,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+<section>
+	<h1>Friendly Link</h1>
+	<ul id="recent_posts">
+      <li class="post">
+        <a href="http://daimajia.com/">http://daimajia.com/</a>
+      </li>
+  </ul>
+</section>
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/105933083684642036089?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+<section>
+  <link href="https://coderbits.com/content/widget/coderbits.css" media="all" rel="stylesheet" type="text/css">
+  <style type="text/css">
+    #coderbits {
+      margin: 10px 0 0 0;
+    }
+  </style>
+  <h1>Coderbits Portfolio</h1>
+  <section id="coderbits" data-coderbits-username="kyze8439690"></section>
+  <script src="https://coderbits.com/content/widget/coderbits.js"></script>
+</section>
+
+<section>
+  <h1>About Me</h1>
+  <p>A little something about me.</p>
+</section>
+
+  
+</aside>
+
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - 杨辉 -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'kyze8439690';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://yanghui.name/blog/2015/09/27/fragment-recreate-1/';
+        var disqus_url = 'http://yanghui.name/blog/2015/09/27/fragment-recreate-1/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+<script>
+  $(document).ready(function() {  
+    var stickyNavTop = $('nav').offset().top;  
+      
+    var stickyNav = function(){  
+      var scrollTop = $(window).scrollTop(); 
+      var navHasClassSticky = $('nav').hasClass('sticky');
+
+      if (scrollTop > stickyNavTop && navHasClassSticky) {   
+        return true;
+      } else if (scrollTop > stickyNavTop) {
+        $('nav').hide();
+        $('nav').addClass('sticky');
+        $('nav').fadeIn('2000');
+      } else {  
+        $('nav').removeClass('sticky');   
+      }  
+    };  
+      
+    stickyNav();  
+      
+    $(window).scroll(function() {  
+      stickyNav();  
+    });  
+  });  
+</script>
+
+
+</body>
+</html>

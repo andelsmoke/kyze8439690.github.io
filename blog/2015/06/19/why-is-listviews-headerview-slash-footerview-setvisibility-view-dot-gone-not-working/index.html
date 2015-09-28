@@ -1,0 +1,534 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Why Is ListView&#8217;s HeaderView/FooterView setVisibility(View.GONE) Not Working? - 杨辉的个人博客</title>
+  <meta name="author" content="杨辉">
+
+  
+  <meta name="description" content="使用 ListView 的时候，根据需求需要动态将HeaderView/FooterView隐藏掉，这时你会发现 setVisibility(View.GONE) 根本没有效果，两个折衷的方案是: 动态将HeaderView/FooterView remove掉，要显示的时候再add回去。 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yanghui.name/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="杨辉的个人博客" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href='https://fonts.googleapis.com/css?family=Noto+Serif:400,700' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-46433471-3']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">杨辉的个人博客</a></h1>
+  
+    <h2>记录编程新的体会.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  
+  
+</ul>
+
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Why Is ListView&#8217;s HeaderView/FooterView setVisibility(View.GONE) Not Working?</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-06-19T18:14:54+08:00" pubdate data-updated="true">Jun 19th, 2015</time>
+        
+           | <a href="#disqus_thread"
+             data-disqus-identifier="http://yanghui.name">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>使用 <code>ListView</code> 的时候，根据需求需要动态将HeaderView/FooterView隐藏掉，这时你会发现 <code>setVisibility(View.GONE)</code> 根本没有效果，两个折衷的方案是:</p>
+
+<ul>
+<li>动态将HeaderView/FooterView remove掉，要显示的时候再add回去。</li>
+<li>在HeaderView/FooterView外面包一个Container ViewGroup(例如 <code>FrameLayout</code>)，再把这个Container作为HeaderView/FooterView add 到<code>ListView</code> 中。</li>
+</ul>
+
+
+<p>以上两个方案都能实现隐藏 HeaderView/FooterView 的效果。下面我从源码介绍以下为何 <code>View.GONE</code> 不生效，以及为何以上 workaround 能够生效的原因。</p>
+
+<!--more-->
+
+
+<p>总所周知，一个 <code>View</code> 能在屏幕上显示出来，需要经历 <strong>measure / layout / draw</strong> 三个步骤，measure 步骤负责测量View的大小，layout 步骤负责布局，draw 步骤负责绘制。一个 <code>View</code> 占屏幕多大位置，一般是由 measure 步骤决定。</p>
+
+<p>对于 <code>ListView</code> 来说，不论是 Header 还是 Footer 还是普通的 ItemView，对他来说，都是普通的子 View。Header/Footer 和 ItemView 的区别，在 <code>HeaderViewListAdapter</code> 中体现。</p>
+
+<p><code>ListView</code> HeaderView/FooterView 设置隐藏不生效，表现为仍然占据原有的位置空间。所以我们先从 <code>ListView</code> 的 <code>onMeasure()</code> 函数入手。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">protected</span> <span class="kt">void</span> <span class="nf">onMeasure</span><span class="o">(</span><span class="kt">int</span> <span class="n">widthMeasureSpec</span><span class="o">,</span> <span class="kt">int</span> <span class="n">heightMeasureSpec</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="c1">// Sets up mListPadding</span>
+</span><span class='line'>    <span class="kd">super</span><span class="o">.</span><span class="na">onMeasure</span><span class="o">(</span><span class="n">widthMeasureSpec</span><span class="o">,</span> <span class="n">heightMeasureSpec</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">//...</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">childWidth</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">childHeight</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">childState</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">mItemCount</span> <span class="o">=</span> <span class="n">mAdapter</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">?</span> <span class="mi">0</span> <span class="o">:</span> <span class="n">mAdapter</span><span class="o">.</span><span class="na">getCount</span><span class="o">();</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">mItemCount</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="o">(</span><span class="n">widthMode</span> <span class="o">==</span> <span class="n">MeasureSpec</span><span class="o">.</span><span class="na">UNSPECIFIED</span> <span class="o">||</span>
+</span><span class='line'>            <span class="n">heightMode</span> <span class="o">==</span> <span class="n">MeasureSpec</span><span class="o">.</span><span class="na">UNSPECIFIED</span><span class="o">))</span> <span class="o">{</span>
+</span><span class='line'>        <span class="kd">final</span> <span class="n">View</span> <span class="n">child</span> <span class="o">=</span> <span class="n">obtainView</span><span class="o">(</span><span class="mi">0</span><span class="o">,</span> <span class="n">mIsScrap</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>       <span class="c1">//测量 itemView</span>
+</span><span class='line'>        <span class="n">measureScrapChild</span><span class="o">(</span><span class="n">child</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="n">widthMeasureSpec</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">childWidth</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="na">getMeasuredWidth</span><span class="o">();</span>
+</span><span class='line'>        <span class="n">childHeight</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="na">getMeasuredHeight</span><span class="o">();</span>
+</span><span class='line'>        <span class="c1">//...</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">//...</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">heightMode</span> <span class="o">==</span> <span class="n">MeasureSpec</span><span class="o">.</span><span class="na">UNSPECIFIED</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">heightSize</span> <span class="o">=</span> <span class="n">mListPadding</span><span class="o">.</span><span class="na">top</span> <span class="o">+</span> <span class="n">mListPadding</span><span class="o">.</span><span class="na">bottom</span> <span class="o">+</span> <span class="n">childHeight</span> <span class="o">+</span>
+</span><span class='line'>                <span class="n">getVerticalFadingEdgeLength</span><span class="o">()</span> <span class="o">*</span> <span class="mi">2</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">heightMode</span> <span class="o">==</span> <span class="n">MeasureSpec</span><span class="o">.</span><span class="na">AT_MOST</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="c1">// TODO: after first layout we should maybe start at the first visible position, not 0</span>
+</span><span class='line'>        <span class="n">heightSize</span> <span class="o">=</span> <span class="n">measureHeightOfChildren</span><span class="o">(</span><span class="n">widthMeasureSpec</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="n">NO_POSITION</span><span class="o">,</span> <span class="n">heightSize</span><span class="o">,</span> <span class="o">-</span><span class="mi">1</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">//设置 ListView dimension</span>
+</span><span class='line'>    <span class="n">setMeasuredDimension</span><span class="o">(</span><span class="n">widthSize</span> <span class="o">,</span> <span class="n">heightSize</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">mWidthMeasureSpec</span> <span class="o">=</span> <span class="n">widthMeasureSpec</span><span class="o">;</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>从这里可以看出每一个 itemView 的测量，都是由 <code>measureScrapChild()</code> 这个函数完成的，所以我们再来看看这个函数的源码。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kt">void</span> <span class="nf">measureScrapChild</span><span class="o">(</span><span class="n">View</span> <span class="n">child</span><span class="o">,</span> <span class="kt">int</span> <span class="n">position</span><span class="o">,</span> <span class="kt">int</span> <span class="n">widthMeasureSpec</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">LayoutParams</span> <span class="n">p</span> <span class="o">=</span> <span class="o">(</span><span class="n">LayoutParams</span><span class="o">)</span> <span class="n">child</span><span class="o">.</span><span class="na">getLayoutParams</span><span class="o">();</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">p</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">p</span> <span class="o">=</span> <span class="o">(</span><span class="n">AbsListView</span><span class="o">.</span><span class="na">LayoutParams</span><span class="o">)</span> <span class="n">generateDefaultLayoutParams</span><span class="o">();</span>
+</span><span class='line'>        <span class="n">child</span><span class="o">.</span><span class="na">setLayoutParams</span><span class="o">(</span><span class="n">p</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="n">p</span><span class="o">.</span><span class="na">viewType</span> <span class="o">=</span> <span class="n">mAdapter</span><span class="o">.</span><span class="na">getItemViewType</span><span class="o">(</span><span class="n">position</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">p</span><span class="o">.</span><span class="na">forceAdd</span> <span class="o">=</span> <span class="kc">true</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">childWidthSpec</span> <span class="o">=</span> <span class="n">ViewGroup</span><span class="o">.</span><span class="na">getChildMeasureSpec</span><span class="o">(</span><span class="n">widthMeasureSpec</span><span class="o">,</span>
+</span><span class='line'>            <span class="n">mListPadding</span><span class="o">.</span><span class="na">left</span> <span class="o">+</span> <span class="n">mListPadding</span><span class="o">.</span><span class="na">right</span><span class="o">,</span> <span class="n">p</span><span class="o">.</span><span class="na">width</span><span class="o">);</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">lpHeight</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="na">height</span><span class="o">;</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">childHeightSpec</span><span class="o">;</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">lpHeight</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">childHeightSpec</span> <span class="o">=</span> <span class="n">MeasureSpec</span><span class="o">.</span><span class="na">makeMeasureSpec</span><span class="o">(</span><span class="n">lpHeight</span><span class="o">,</span> <span class="n">MeasureSpec</span><span class="o">.</span><span class="na">EXACTLY</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">childHeightSpec</span> <span class="o">=</span> <span class="n">MeasureSpec</span><span class="o">.</span><span class="na">makeMeasureSpec</span><span class="o">(</span><span class="mi">0</span><span class="o">,</span> <span class="n">MeasureSpec</span><span class="o">.</span><span class="na">UNSPECIFIED</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="n">child</span><span class="o">.</span><span class="na">measure</span><span class="o">(</span><span class="n">childWidthSpec</span><span class="o">,</span> <span class="n">childHeightSpec</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>从这段源码可以看出，每个 itemView 的测量，要先判断 view 是否存在 <code>AbsListView.LayoutParams</code>，如果不存在则new一个新的。<code>generateDefaultLayoutParams()</code> 源码如下。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">protected</span> <span class="n">ViewGroup</span><span class="o">.</span><span class="na">LayoutParams</span> <span class="nf">generateDefaultLayoutParams</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">return</span> <span class="k">new</span> <span class="n">AbsListView</span><span class="o">.</span><span class="na">LayoutParams</span><span class="o">(</span><span class="n">ViewGroup</span><span class="o">.</span><span class="na">LayoutParams</span><span class="o">.</span><span class="na">MATCH_PARENT</span><span class="o">,</span>
+</span><span class='line'>            <span class="n">ViewGroup</span><span class="o">.</span><span class="na">LayoutParams</span><span class="o">.</span><span class="na">WRAP_CONTENT</span><span class="o">,</span> <span class="mi">0</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>WRAP_CONTENT</code> 值为 -2，<code>MATCH_PARENT</code> 为 -1，所以默认情况下 itemView 的大小由他自身决定（<code>MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)</code>）。</p>
+
+<p>在以上的源码中可以总结出以下几点：</p>
+
+<ul>
+<li><p><code>ListView</code> 的源码中并没有针对 Visibility 做特殊处理，一般 <code>ViewGroup</code> 都会跳过 Visibility 为 <code>View.GONE</code> 的 childView, 让他们大小为0。所以设置 HeaderView/FooterView 为 <code>View.GONE</code> 是无效的。</p></li>
+<li><p><code>ListView</code> 中对 itemView 的测量取决于 <code>LayoutParams</code>，想通过设置 <code>LayoutParams</code> 来隐藏 <code>ListView</code> 的某一项是行不通的，因为 0，-1，-2都会变成 ItemView 自己来决定自己的大小。你可以这样做一个测试：给 HeaderView/FooterView 设置一个 height 为 1 的 <code>AbsListView.LayoutParams</code>，你会发现 HeaderView/FooterView终于能够自我收缩了！</p></li>
+</ul>
+
+
+<p>那为何给 HeaderView/FooterView 包一层 Container 就可以实现隐藏的效果呢？分析如下：</p>
+
+<ul>
+<li><p>默认结构是这样的： <strong>ListView -> HeaderView/FooterView(View.GONE)</strong><br/>
+由于 ListView 没有对 Visibility 做处理，所以 HeaderView/FooterView 会被当成 <code>View.VISIBLE</code> 一样去 measure，隐藏失败。</p></li>
+<li><p>Container Workaround 是这样的：<strong>ListView -> Container(WRAP_CONTENT) -> HeaderView/FooterView(View.GONE)</strong><br/>
+ListView还是让 ItemView 自己决定自己的大小，Container 是 <code>WRAP_CONTENT</code>，继续看下一层，HeaderView/FooterView 是 <code>View.GONE</code>，从而导致 Container measure 出来的 measureHeight 是 0，所以 HeaderView/FooterView 被隐藏。</p></li>
+</ul>
+
+
+<p>当然还有第三种 Workarround：就是覆盖 HeaderView/FooterView的 <code>getMeasuredHeight()</code> 函数，让它有选择地按照实际情况返回 0 或者 <code>super.getMeasuredHeight()</code>。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">杨辉</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-06-19T18:14:54+08:00" pubdate data-updated="true">Jun 19th, 2015</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yanghui.name/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/" data-via="yugy1991" data-counturl="http://yanghui.name/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/05/19/view-and-viewgroups-measure-layout-and-draw/" title="Previous Post: view and ViewGroup's measure layout and draw">&laquo; view and ViewGroup&#8217;s measure layout and draw</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/07/19/make-all-command-through-proxy/" title="Next Post: Terminal 代理方案">Terminal 代理方案 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+  <aside class="sidebar">
+   
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yanghui.name" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/09/28/fragment-recreate-2/">Fragment Recreate(2)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/27/fragment-recreate-1/">Fragment Recreate(1)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/31/tools-namespace-and-support-library-annotations/">Tools 命名空间的使用与 Support Library Annotations 介绍</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/19/make-all-command-through-proxy/">Terminal 代理方案</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/">Why Is ListView&#8217;s HeaderView/FooterView setVisibility(View.GONE) Not Working?</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating&#8230;</li>
+  </ul>
+  
+  <a href="https://github.com/kyze8439690">@kyze8439690</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'kyze8439690',
+            count: 11,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+<section>
+	<h1>Friendly Link</h1>
+	<ul id="recent_posts">
+      <li class="post">
+        <a href="http://daimajia.com/">http://daimajia.com/</a>
+      </li>
+  </ul>
+</section>
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/105933083684642036089?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+<section>
+  <link href="https://coderbits.com/content/widget/coderbits.css" media="all" rel="stylesheet" type="text/css">
+  <style type="text/css">
+    #coderbits {
+      margin: 10px 0 0 0;
+    }
+  </style>
+  <h1>Coderbits Portfolio</h1>
+  <section id="coderbits" data-coderbits-username="kyze8439690"></section>
+  <script src="https://coderbits.com/content/widget/coderbits.js"></script>
+</section>
+
+<section>
+  <h1>About Me</h1>
+  <p>A little something about me.</p>
+</section>
+
+  
+</aside>
+
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - 杨辉 -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'kyze8439690';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://yanghui.name/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/';
+        var disqus_url = 'http://yanghui.name/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+<script>
+  $(document).ready(function() {  
+    var stickyNavTop = $('nav').offset().top;  
+      
+    var stickyNav = function(){  
+      var scrollTop = $(window).scrollTop(); 
+      var navHasClassSticky = $('nav').hasClass('sticky');
+
+      if (scrollTop > stickyNavTop && navHasClassSticky) {   
+        return true;
+      } else if (scrollTop > stickyNavTop) {
+        $('nav').hide();
+        $('nav').addClass('sticky');
+        $('nav').fadeIn('2000');
+      } else {  
+        $('nav').removeClass('sticky');   
+      }  
+    };  
+      
+    stickyNav();  
+      
+    $(window).scroll(function() {  
+      stickyNav();  
+    });  
+  });  
+</script>
+
+
+</body>
+</html>

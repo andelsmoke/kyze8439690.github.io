@@ -1,0 +1,395 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Android Developer Tools（开发人员工具） - 杨辉的个人博客</title>
+  <meta name="author" content="杨辉">
+
+  
+  <meta name="description" content="在做Android开发的过程中，不可避免地需要使用到自带的android developer tools（开发人员工具），这是一个强大的开发辅助工具，随着android版本的更新，developer tools也集成了越来越多十分方便的调试功能，这里以android 4.4.4版本为例子， &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yanghui.name/blog/2015/01/20/android-developer-tools">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="杨辉的个人博客" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href='https://fonts.googleapis.com/css?family=Noto+Serif:400,700' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-46433471-3']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">杨辉的个人博客</a></h1>
+  
+    <h2>记录编程新的体会.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  
+  
+</ul>
+
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Android Developer Tools（开发人员工具）</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-01-20T15:01:18+08:00" pubdate data-updated="true">Jan 20th, 2015</time>
+        
+           | <a href="#disqus_thread"
+             data-disqus-identifier="http://yanghui.name">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>在做Android开发的过程中，不可避免地需要使用到自带的android developer tools（开发人员工具），这是一个强大的开发辅助工具，随着android版本的更新，developer tools也集成了越来越多十分方便的调试功能，这里以android 4.4.4版本为例子，说说其中一部分我常用工具的使用（恕我才疏学浅没能全部懂用）。</p>
+
+<!--more-->
+
+
+<h3><strong>显示布局边界</strong></h3>
+
+<p>这个工具用于显示普通view布局的size，margin等属性，实际使用场景为：查看view的实际位置，检查界面是由普通view拼装而成或用surfaceView（WebView）实现。<br/>
+<img src="/images/show_border.jpg" width="400" height="640" title="显示布局边界" ></p>
+
+<h3><strong>强制使用从右到左的布局</strong></h3>
+
+<p>也就是RTL布局（Right-to-Left），由于一些国家地区的语言习惯，书写阅读是从右到左（类似中国古代的书写习惯）。有些开发者可能很奇怪，在2.3或以上的android版本，padding，margin，gravity等，是left，right，top，bottom组合，到了3.0或以后，就多了个<strong>start</strong>和<strong>end</strong>，这个也是为了RTL布局而添加的。一般开发者都会无视这个选项，沿用常见的左右布局，但是如果你做的是国际化应用的话，就需要考虑RTL布局了。而这个开发者选项，就是让开发者可以在<strong>不切换语言区域的情况下，调试RTL布局</strong>。<br/>
+<img src="/images/show_rtl.jpg" width="400" height="640" title="强制使用从右到左的布局" ></p>
+
+<h3><strong>显示GPU视图更新</strong></h3>
+
+<p>随着android版本的更新，越来越多的绘制操作能使用GPU来完成，详见<a href="http://developer.android.com/guide/topics/graphics/hardware-accel.html">http://developer.android.com/guide/topics/graphics/hardware-accel.html</a>，而这个工具打开之后，使用GPU绘制的区域会用红色来标注，而没有红色标注的区域，则是使用CPU绘制的。这个选项也可以用来查看redraw的区域大小。<br/>
+<img src="/images/show_gpu_redraw.jpg" width="400" height="640" title="显示GPU视图更新" ></p>
+
+<h3><strong>调试GPU过度绘制</strong></h3>
+
+<p>这个就是经典了Overdraw问题(过度绘制)了。我们知道，动画是通过一帧一帧不断重绘，连续播放实现的。而在绘制完成的时候，每一个像素点可能已经<strong>不可避免地</strong>被绘制了一次以上，由于每个像素点最终显示出来的只有一种颜色（假设透明度100%），所以先前绘制的操作都是无用的，这就是overdraw了。Overdraw会造成什么问题呢？为了达到60FPS的绘制速率，每一次绘制，都需要在16ms内完成（1000ms / 60），如果绘制的时间过长，就会导致绘制占用的时间过长，用户在使用时就会有卡顿的感觉。需要注意的一点是：<strong>Overdraw是无法避免的，我们只能尽量通过优化减少他。</strong>打开调试GPU过度绘制选项（显示过度绘制区域），屏幕会显示一些从浅绿到深红的色块，这些色块指示出了overdraw的程度，颜色越往深红靠，说明overdraw越严重。由于overdraw无法避免，要整个界面都显示白色几乎不可能，我们只能尽量让红色的区域减少。如果你发现你的app几乎整个都是深红色的，那说明你需要好好优化一下布局了。<br/>
+<img src="/images/show_overdraw.jpg" width="400" height="640" title="调试GPU过度绘制" ></p>
+
+<h3><strong>GPU呈现模式分析</strong></h3>
+
+<p>这个选项用于显示绘制速率。打开时屏幕下部会显示绘制速率条形图和一条横线。该横线表示在它以下的绘制时间少于16ms，绘制是流畅的。如果条形超出了横线，说明当前发生了绘制的卡滞，需要根据当前操作优化程序，提供一致的流畅体验。<br/>
+<img src="/images/show_fps.jpg" width="400" height="640" title="GPU呈现模式分析" ></p>
+
+<h3><strong>不保留活动</strong></h3>
+
+<p>这个选项用于调试activity被销毁的情况。当系统可用内存不足，新程序要求分配内存的时候，除了gc以外，系统可能会把后台的activity destroy掉以回收内存，为了能恢复被destory activity的状态，系统在destory时会调用<a href="http://developer.android.com/reference/android/app/Activity.html#onSaveInstanceState(android.os.Bundle)">onSaveInstanceState(Bundle)</a>方法，将activity状态保存在bundle中；在activity重启的onCreate(Bundle)方法中，将保存的状态恢复。<br/>
+需要注意的是saveInstance是一个遍历操作，从高层到底层，换句话说，从activity到fragment，fragment到viewgroup，viewgroup到view，一层一层地调用saveInstance方法。反之，恢复的时候也是这样。Fragment/ViewGroup/View的状态保存需要一个条件：必须拥有id或者tag。这是保存状态时使用的标识。而什么状态需要保存呢？聚个栗子🌰，activity/view/viewGroup/fragment中的自定义变量，没有用持久化保存（sqlite，sharedPreference等）的数据，都需要用bundle保存起来。</p>
+
+<p>回到主题，不保留活动选项，正是用来调试这个情况的。由于你无法预知系统什么时候会回收activity释放内存空间，我们需要手动触发他。打开这个选项之后，每一个不是visible的activity，都会直接被调用onSavedInstance并destory掉。所以，你只需要打开不保留活动，打开你要测试的activity，按home键回到桌面，再返回这个activity并观察现象尽可。如果状态恢复有问题，这时候应该会发生一个NPE（NullPointerException），或者视图上的数据显示有问题。这时再根据情况修改代码即可。</p>
+
+<p>最后附上cyrilmottier大大有关android状态恢复的<a href="/attachments/deepdiveintoandroidrestorationbycyrilmottier-140924114735-phpapp02.pdf">ppt</a>，网络情况的好的直接看<a href="http://www.slideshare.net/parisandroidug/deep-dive-into-android-restoration-droidcon-paris-2014">原链接</a>。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">杨辉</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-01-20T15:01:18+08:00" pubdate data-updated="true">Jan 20th, 2015</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/android/'>android</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yanghui.name/blog/2015/01/20/android-developer-tools/" data-via="yugy1991" data-counturl="http://yanghui.name/blog/2015/01/20/android-developer-tools/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/10/17/managing-touch-events-in-a-viewgroup/" title="Previous Post: (译)在ViewGroup中处理Touch Events">&laquo; (译)在ViewGroup中处理Touch Events</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/02/01/2015-1-31-ali-technical-salon/" title="Next Post: 2015-1-31 阿里技术沙龙 - Android应用性能优化实践">2015-1-31 阿里技术沙龙 - Android应用性能优化实践 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+  <aside class="sidebar">
+   
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yanghui.name" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/09/28/fragment-recreate-2/">Fragment Recreate(2)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/27/fragment-recreate-1/">Fragment Recreate(1)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/31/tools-namespace-and-support-library-annotations/">Tools 命名空间的使用与 Support Library Annotations 介绍</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/19/make-all-command-through-proxy/">Terminal 代理方案</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/">Why Is ListView&#8217;s HeaderView/FooterView setVisibility(View.GONE) Not Working?</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating&#8230;</li>
+  </ul>
+  
+  <a href="https://github.com/kyze8439690">@kyze8439690</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'kyze8439690',
+            count: 11,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+<section>
+	<h1>Friendly Link</h1>
+	<ul id="recent_posts">
+      <li class="post">
+        <a href="http://daimajia.com/">http://daimajia.com/</a>
+      </li>
+  </ul>
+</section>
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/105933083684642036089?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+<section>
+  <link href="https://coderbits.com/content/widget/coderbits.css" media="all" rel="stylesheet" type="text/css">
+  <style type="text/css">
+    #coderbits {
+      margin: 10px 0 0 0;
+    }
+  </style>
+  <h1>Coderbits Portfolio</h1>
+  <section id="coderbits" data-coderbits-username="kyze8439690"></section>
+  <script src="https://coderbits.com/content/widget/coderbits.js"></script>
+</section>
+
+<section>
+  <h1>About Me</h1>
+  <p>A little something about me.</p>
+</section>
+
+  
+</aside>
+
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - 杨辉 -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'kyze8439690';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://yanghui.name/blog/2015/01/20/android-developer-tools/';
+        var disqus_url = 'http://yanghui.name/blog/2015/01/20/android-developer-tools/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+<script>
+  $(document).ready(function() {  
+    var stickyNavTop = $('nav').offset().top;  
+      
+    var stickyNav = function(){  
+      var scrollTop = $(window).scrollTop(); 
+      var navHasClassSticky = $('nav').hasClass('sticky');
+
+      if (scrollTop > stickyNavTop && navHasClassSticky) {   
+        return true;
+      } else if (scrollTop > stickyNavTop) {
+        $('nav').hide();
+        $('nav').addClass('sticky');
+        $('nav').fadeIn('2000');
+      } else {  
+        $('nav').removeClass('sticky');   
+      }  
+    };  
+      
+    stickyNav();  
+      
+    $(window).scroll(function() {  
+      stickyNav();  
+    });  
+  });  
+</script>
+
+
+</body>
+</html>

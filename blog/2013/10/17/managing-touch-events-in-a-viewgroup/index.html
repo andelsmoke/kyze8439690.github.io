@@ -1,0 +1,562 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>(译)在ViewGroup中处理Touch Events - 杨辉的个人博客</title>
+  <meta name="author" content="杨辉">
+
+  
+  <meta name="description" content="在一个ViewGroup中处理touch events需要格外注意。因为在ViewGroup里面有着各种要处理不同touch events的子view，这是很常见的。为了确保每个view能正确地获取到属于他的touch events，我们必须覆盖onInterceptTouchEvent()函数 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yanghui.name/blog/2013/10/17/managing-touch-events-in-a-viewgroup">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="杨辉的个人博客" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href='https://fonts.googleapis.com/css?family=Noto+Serif:400,700' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-46433471-3']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">杨辉的个人博客</a></h1>
+  
+    <h2>记录编程新的体会.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  
+  
+</ul>
+
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">(译)在ViewGroup中处理Touch Events</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2013-10-17T00:18:00+08:00" pubdate data-updated="true">Oct 17th, 2013</time>
+        
+           | <a href="#disqus_thread"
+             data-disqus-identifier="http://yanghui.name">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>在一个<a href="http://developer.android.com/reference/android/view/ViewGroup.html"><code>ViewGroup</code></a>中处理touch events需要格外注意。因为在<a href="http://developer.android.com/reference/android/view/ViewGroup.html"><code>ViewGroup</code></a>里面有着各种要处理不同touch events的子view，这是很常见的。为了确保每个view能正确地获取到属于他的touch events，我们必须覆盖<a href="http://developer.android.com/reference/android/view/ViewGroup.html#onInterceptTouchEvent(android.view.MotionEvent)"><code>onInterceptTouchEvent()</code></a>函数。</p>
+
+<!--more-->
+
+
+<hr />
+
+<h4>ViewGroup中的Touch Events</h4>
+
+<p>当在一个<a href="http://developer.android.com/reference/android/view/ViewGroup.html"><code>ViewGroup</code></a>表面，或者里面的子view表面检测到一个touch event的时候，会调用<a href="http://developer.android.com/reference/android/view/ViewGroup.html"><code>ViewGroup</code></a>的<a href="http://developer.android.com/reference/android/view/ViewGroup.html#onInterceptTouchEvent(android.view.MotionEvent)"><code>onInterceptTouchEvent()</code></a>函数。如果<a href="http://developer.android.com/reference/android/view/ViewGroup.html#onInterceptTouchEvent(android.view.MotionEvent)"><code>onInterceptTouchEvent()</code></a>函数返回true时，这个MotionEvent将会被截断，也就意味着，不会传递给子view，而是交给父层(<a href="http://developer.android.com/reference/android/view/ViewGroup.html"><code>ViewGroup</code></a>)的<a href="http://developer.android.com/reference/android/view/View.html#onTouchEvent(android.view.MotionEvent)"><code>onTouchEvent</code></a>函数处理。</p>
+
+<p><a href="http://developer.android.com/reference/android/view/ViewGroup.html#onInterceptTouchEvent(android.view.MotionEvent)"><code>onInterceptTouchEvent()</code></a>方法提供了一个让父层在所以子view之前先获取到touch event的途径。如果你在<a href="http://developer.android.com/reference/android/view/ViewGroup.html#onInterceptTouchEvent(android.view.MotionEvent)"><code>onInterceptTouchEvent()</code></a>中返回了true的话，先前获取到touch events的子view会接收到一个<a href="http://developer.android.com/reference/android/view/MotionEvent.html#ACTION_CANCEL"><code>ACTION_CANCEL</code></a>，而先前的events会传到父层的<a href="http://developer.android.com/reference/android/view/View.html#onTouchEvent(android.view.MotionEvent)"><code>onTouchEvent</code></a>做处理。<a href="http://developer.android.com/reference/android/view/ViewGroup.html#onInterceptTouchEvent(android.view.MotionEvent)"><code>onInterceptTouchEvent()</code></a>也能直接返回false去简单地观察touch events按view hierarchy传递给他们原先的目标（子view），用子view的<a href="http://developer.android.com/reference/android/view/View.html#onTouchEvent(android.view.MotionEvent)"><code>onTouchEvent</code></a>去处理这些events。</p>
+
+<!-- more -->
+
+
+<p>在下面这些代码段中，MyViewGroup继承于<a href="http://developer.android.com/reference/android/view/ViewGroup.html"><code>ViewGroup</code></a>，并包含了多个子view。如果你在子view上横向拖动，子view不再会获取到touch events，而MyViewGroup会处理这些touch events来滚动他的内容。但是，如果你按下子view中的button，或者纵向滚动子view，父层不会截获这些touch events，因为子view才是传递的目标。在这种情况中，<a href="http://developer.android.com/reference/android/view/ViewGroup.html#onInterceptTouchEvent(android.view.MotionEvent)"><code>onInterceptTouchEvent()</code></a>应该返回false，这样MyViewGroup的<a href="http://developer.android.com/reference/android/view/View.html#onTouchEvent(android.view.MotionEvent)"><code>onTouchEvent</code></a>才不会被调用。</p>
+
+<pre><code>public class MyViewGroup extends ViewGroup {
+
+    private int mTouchSlop;
+
+    ...
+
+    ViewConfiguration vc = ViewConfiguration.get(view.getContext());
+    mTouchSlop = vc.getScaledTouchSlop();
+
+    ...
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        /*
+         * 这个方法只是决定我们是否要截获这个手势.
+         * 如果我们返回true，那么onTouchEvent 就会被调用，然后我们就开始进行滚动的操作
+         */
+
+
+        final int action = MotionEventCompat.getActionMasked(ev);
+
+        // 先处理触摸手势完成的情况
+        if (action == MotionEvent.ACTION_CANCEL || action == MotionEvent.ACTION_UP) {
+            // 释放滚动.
+            mIsScrolling = false;
+            return false; // 不会截获touch event，让子view处理他
+        }
+
+        switch (action) {
+            case MotionEvent.ACTION_MOVE: {
+                if (mIsScrolling) {
+                    // 处于正在滚动的状态，因此要截获touch event！
+                    return true;
+                }
+
+                // 如果用户手指横向移动量超过了阀值，则开始滚动
+
+                // 作为读者的练习:)
+                final int xDiff = calculateDistanceX(ev); 
+
+                // 触摸阀值应该用ViewConfiguration常量来计算
+                if (xDiff &gt; mTouchSlop) { 
+                    // 开始滚动!
+                    mIsScrolling = true;
+                    return true;
+                }
+                break;
+            }
+            ...
+        }
+
+        // 通常情况下，我们不会想要截获touch event，它们应该让子view来处理
+        return false;
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent ev) {
+        // 这里我们开始处理touch event (e.g. 如果action是ACTION_MOVE,滚动container）。
+        // 这个方法只有在touch event在onInterceptTouchEvent中被截获时调用
+        ...
+    }
+}
+</code></pre>
+
+<p>需要注意的是<a href="http://developer.android.com/reference/android/view/ViewGroup.html"><code>ViewGroup</code></a>也提供了一个<a href="http://developer.android.com/reference/android/view/ViewGroup.html#requestDisallowInterceptTouchEvent(boolean)"><code>requestDisallowInterceptTouchEvent()</code></a>函数。ViewGroup可以通过调用这个函数，让子view阻止所有父层利用<a href="http://developer.android.com/reference/android/view/ViewGroup.html#onInterceptTouchEvent(android.view.MotionEvent)"><code>onInterceptTouchEvent()</code></a>来截取touch event。</p>
+
+<hr />
+
+<h4>使用ViewConfiguration常量</h4>
+
+<p>上面的代码中使用了<a href="http://developer.android.com/reference/android/view/ViewConfiguration.html"><code>ViewConfiguration</code></a>去初始化一个叫mTouchSlop的变量。你可以使用<a href="http://developer.android.com/reference/android/view/ViewConfiguration.html"><code>ViewConfiguration</code></a>类去获取Android系统内置的距离，速度，次数等。</p>
+
+<p>&ldquo;Touch slop&rdquo; 可以解释为一个用户手势被判断为滑动的距离。Touch slop通常用来防止用户的其他触摸行为（如触摸屏幕上的元素）被判断为滑动。</p>
+
+<p>另外两个最常使用的<a href="http://developer.android.com/reference/android/view/ViewConfiguration.html"><code>ViewConfiguration</code></a>方法是<a href="http://developer.android.com/reference/android/view/ViewConfiguration.html#getScaledMinimumFlingVelocity()"><code>getScaledMinimumFlingVelocity()</code></a>和<a href="http://developer.android.com/reference/android/view/ViewConfiguration.html#getScaledMaximumFlingVelocity()"><code>getScaledMaximumFlingVelocity()</code></a>。这两个方法会返回初始化滑动的最大速度值和最小速度值，以像素/秒为单位。例如：</p>
+
+<pre><code>ViewConfiguration vc = ViewConfiguration.get(view.getContext());
+private int mSlop = vc.getScaledTouchSlop();
+private int mMinFlingVelocity = vc.getScaledMinimumFlingVelocity();
+private int mMaxFlingVelocity = vc.getScaledMaximumFlingVelocity();
+
+...
+
+case MotionEvent.ACTION_MOVE: {
+    ...
+    float deltaX = motionEvent.getRawX() - mDownX;
+    if (Math.abs(deltaX) &gt; mSlop) {
+        // 发生了滑动
+    }
+
+...
+
+case MotionEvent.ACTION_UP: {
+    ...
+    } if (mMinFlingVelocity &lt;= velocityX &amp;&amp; velocityX &lt;= mMaxFlingVelocity
+            &amp;&amp; velocityY &lt; velocityX) {
+        // 条件被满足
+    }
+}
+</code></pre>
+
+<hr />
+
+<h4>扩展一个子view的点击热区</h4>
+
+<p>Android提供了一个<a href="http://developer.android.com/reference/android/view/TouchDelegate.html"><code>TouchDelegate</code></a>类去让父类扩展它的子view的触摸区域。当子view很小但需要大的触摸区域的时候，这个类大有用处。如果你想要的话，你也能用这个类去缩小子view的触摸区域。</p>
+
+<p>在下面的例子中，有一个作为例子的<a href="http://developer.android.com/reference/android/widget/ImageButton.html"><code>ImageButton</code></a>(也就是说父类会扩展这个子view的触摸区域)</p>
+
+<pre><code>&lt;RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+     android:id="@+id/parent_layout"
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
+     tools:context=".MainActivity" &gt;
+
+     &lt;ImageButton android:id="@+id/button"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:background="@null"
+          android:src="@drawable/icon" /&gt;
+&lt;/RelativeLayout&gt;
+</code></pre>
+
+<p>下面的代码段会完成下面的事情：</p>
+
+<ul>
+<li>获取父view并post一个<a href="http://developer.android.com/reference/java/lang/Runnable.html" title="Runnable"><code>Runnable</code></a>到UI线程。这会确保父类在调用<a href="http://developer.android.com/reference/android/view/View.html#getHitRect(android.graphics.Rect"><code>getHitRect()</code></a>)方法前先勾画出他的子类。<a href="http://developer.android.com/reference/android/view/View.html#getHitRect(android.graphics.Rect"><code>getHitRect()</code></a>)方法的作用是在父类的坐标系中获取子view的hit rectangle（触摸区域）。</li>
+<li>找到<a href="http://developer.android.com/reference/android/widget/ImageButton.html"><code>ImageButton</code></a>子view并调用<a href="http://developer.android.com/reference/android/view/View.html#getHitRect(android.graphics.Rect"><code>getHitRect()</code></a>)去获取子类触摸区域范围。</li>
+<li>扩展<a href="http://developer.android.com/reference/android/widget/ImageButton.html"><code>ImageButton</code></a>的hit rectangle范围。</li>
+<li>初始化<a href="http://developer.android.com/reference/android/view/TouchDelegate.html"><code>TouchDelegate</code></a>对象，参数是扩展后的hit rectangle和<a href="http://developer.android.com/reference/android/widget/ImageButton.html"><code>ImageButton</code></a>子view。</li>
+<li>在父view中设置<a href="http://developer.android.com/reference/android/view/TouchDelegate.html"><code>TouchDelegate</code></a>，这样在这个触摸范围内的touch event都会传给<a href="http://developer.android.com/reference/android/widget/ImageButton.html"><code>ImageButton</code></a></li>
+</ul>
+
+
+<p>在<a href="http://developer.android.com/reference/android/widget/ImageButton.html"><code>ImageButton</code></a>子view的触摸范围容量内，父view会接收所有的touch events，如果touch event发生在子类的hit rectangle内，父类会将touch event传给子类做处理。</p>
+
+<pre><code>public class MainActivity extends Activity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        // 获取父view
+        View parentView = findViewById(R.id.parent_layout);
+
+        parentView.post(new Runnable() {
+            // post到父类的消息队列中，确保在调用getHitRect()前勾画出子类
+            @Override
+            public void run() {
+                // 实例view的区域范围（ImageButton）
+                Rect delegateArea = new Rect();
+                ImageButton myButton = (ImageButton) findViewById(R.id.button);
+                myButton.setEnabled(true);
+                myButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Toast.makeText(MainActivity.this, 
+                                "Touch occurred within ImageButton touch region.", 
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+                // ImageButton的hit rectangle
+                myButton.getHitRect(delegateArea);
+
+                // 在ImageButton边框的右边和底边扩展触摸区域
+                delegateArea.right += 100;
+                delegateArea.bottom += 100;
+
+                // 初始化TouchDelegate.
+                // "delegateArea" is the bounds in local coordinates of 
+                // the containing view to be mapped to the delegate view.
+                // "myButton" is the child view that should receive motion
+                // events.
+                TouchDelegate touchDelegate = new TouchDelegate(delegateArea, 
+                        myButton);
+
+                // Sets the TouchDelegate on the parent view, such that touches 
+                // within the touch delegate bounds are routed to the child.
+                if (View.class.isInstance(myButton.getParent())) {
+                    ((View) myButton.getParent()).setTouchDelegate(touchDelegate);
+                }
+            }
+        });
+    }
+}
+</code></pre>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">杨辉</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2013-10-17T00:18:00+08:00" pubdate data-updated="true">Oct 17th, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/android/'>android,</a>, <a class='category' href='/blog/categories/translate/'>translate</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yanghui.name/blog/2013/10/17/managing-touch-events-in-a-viewgroup/" data-via="yugy1991" data-counturl="http://yanghui.name/blog/2013/10/17/managing-touch-events-in-a-viewgroup/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/09/03/fix-android-2-dot-3-can-not-decode-bitmap-in-rgba8888/" title="Previous Post: 修复android 2.3 不能以RGBA8888格式解析图片的问题">&laquo; 修复android 2.3 不能以RGBA8888格式解析图片的问题</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/01/20/android-developer-tools/" title="Next Post: Android developer tools（开发人员工具）">Android developer tools（开发人员工具） &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+  <aside class="sidebar">
+   
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yanghui.name" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/09/28/fragment-recreate-2/">Fragment Recreate(2)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/27/fragment-recreate-1/">Fragment Recreate(1)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/31/tools-namespace-and-support-library-annotations/">Tools 命名空间的使用与 Support Library Annotations 介绍</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/19/make-all-command-through-proxy/">Terminal 代理方案</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/">Why Is ListView&#8217;s HeaderView/FooterView setVisibility(View.GONE) Not Working?</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating&#8230;</li>
+  </ul>
+  
+  <a href="https://github.com/kyze8439690">@kyze8439690</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'kyze8439690',
+            count: 11,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+<section>
+	<h1>Friendly Link</h1>
+	<ul id="recent_posts">
+      <li class="post">
+        <a href="http://daimajia.com/">http://daimajia.com/</a>
+      </li>
+  </ul>
+</section>
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/105933083684642036089?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+<section>
+  <link href="https://coderbits.com/content/widget/coderbits.css" media="all" rel="stylesheet" type="text/css">
+  <style type="text/css">
+    #coderbits {
+      margin: 10px 0 0 0;
+    }
+  </style>
+  <h1>Coderbits Portfolio</h1>
+  <section id="coderbits" data-coderbits-username="kyze8439690"></section>
+  <script src="https://coderbits.com/content/widget/coderbits.js"></script>
+</section>
+
+<section>
+  <h1>About Me</h1>
+  <p>A little something about me.</p>
+</section>
+
+  
+</aside>
+
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - 杨辉 -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'kyze8439690';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://yanghui.name/blog/2013/10/17/managing-touch-events-in-a-viewgroup/';
+        var disqus_url = 'http://yanghui.name/blog/2013/10/17/managing-touch-events-in-a-viewgroup/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+<script>
+  $(document).ready(function() {  
+    var stickyNavTop = $('nav').offset().top;  
+      
+    var stickyNav = function(){  
+      var scrollTop = $(window).scrollTop(); 
+      var navHasClassSticky = $('nav').hasClass('sticky');
+
+      if (scrollTop > stickyNavTop && navHasClassSticky) {   
+        return true;
+      } else if (scrollTop > stickyNavTop) {
+        $('nav').hide();
+        $('nav').addClass('sticky');
+        $('nav').fadeIn('2000');
+      } else {  
+        $('nav').removeClass('sticky');   
+      }  
+    };  
+      
+    stickyNav();  
+      
+    $(window).scroll(function() {  
+      stickyNav();  
+    });  
+  });  
+</script>
+
+
+</body>
+</html>

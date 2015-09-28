@@ -1,0 +1,744 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Tools 命名空间的使用与 Support Library Annotations 介绍 - 杨辉的个人博客</title>
+  <meta name="author" content="杨辉">
+
+  
+  <meta name="description" content="知识来源PPT Tools 命名空间 tools 命名空间是在 Android Studio 中引入的 编辑预览特性，可以生成一些只在 IDE 预览界面生效的特性。 属性预览 1
+2
+3
+&lt;TextView tools:text="test title" /&gt; 这个属性应该很多人都用过 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yanghui.name/blog/2015/08/31/tools-namespace-and-support-library-annotations">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="杨辉的个人博客" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href='https://fonts.googleapis.com/css?family=Noto+Serif:400,700' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-46433471-3']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">杨辉的个人博客</a></h1>
+  
+    <h2>记录编程新的体会.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  
+  
+</ul>
+
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Tools 命名空间的使用与 Support Library Annotations 介绍</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-08-31T23:33:09+08:00" pubdate data-updated="true">Aug 31st, 2015</time>
+        
+           | <a href="#disqus_thread"
+             data-disqus-identifier="http://yanghui.name">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><a href="https://speakerdeck.com/rock3r/tools-of-the-trade-droidcon-nyc-2015">知识来源PPT</a></p>
+
+<h1>Tools 命名空间</h1>
+
+<p>tools 命名空间是在 Android Studio 中引入的 编辑预览特性，可以生成一些只在 IDE 预览界面生效的特性。</p>
+
+<!-- more -->
+
+
+<h3>属性预览</h3>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;TextView
+</span><span class='line'>  tools:text="test title"
+</span><span class='line'>  /&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这个属性应该很多人都用过，设置只在 IDE 预览界面生效的属性。可以方便地对照设计稿调 UI 而避免将预览属性编译进 apk 中（是否会编译进 apk 我也没具体验证过，不过 android 在遇到不支持的 xml 属性会直接忽略，所以无伤大碍）。而且这些属性在被include的时候能够保持，所以推荐在 headerView，footerView，adapterItem，activity，fragment 等xml中使用，在 CustemView 中配合 <code>isInEditMode()</code> 函数使用更佳！不过没有代码提示功能有点遗憾。</p>
+
+<h3>Lint提示忽略</h3>
+
+<p>对于有洁癖的人来说，XML Editor 有很多小黄点实在无法忍受。比如布局的 RTL 支持，ImageView 的 description 定义等。这些属性虽然官方建议添加，但是在实际开发环境做支持实在有点困难。这时候就可以用 <code>tools:ignore</code> 属性将小黄点去处，我常用的 ignore 属性如下：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>tools:ignore="ContentDescription, RtlHardcoded"</span></code></pre></td></tr></table></div></figure>
+
+
+<p>有时候在 Style 中需要对原生属性和 appcompat 自定义属性同时设置，但是原生属性在低版本上不支持，当然就如我前面说的，android 在遇到不支持的属性会直接忽略，但是如果强迫发作，可以用下面的方法忽略：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;item name="android:actionModeShareDrawable" tools:ignore="NewApi"&gt;@drawable/ic_abc_share&lt;/item&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>风格套用</h3>
+
+<p>这个是我比较少用的属性，举例如下，大家可以试试：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;merge
+</span><span class='line'>  tools:context=".MainActivity"
+</span><span class='line'>  tools:showIn="@layout/activity_main"
+</span><span class='line'>  tools:menu="map"
+</span><span class='line'>  tools:actionBarNavStyle="tabs"
+</span><span class='line'>  /&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;fragment
+</span><span class='line'>  tools:layout="@layout/fragment_main"
+</span><span class='line'>  /&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>ListView 预览</h3>
+
+<p>正常情况下，大家的 ListView 预览都是千篇一律的固定样式。其实可以套用 HeaderView/FooterView/ItemView 到预览界面中，需要注意的是，itemView 预览的 tools:attribute 只在第一个 item 中生效，但是我想应该不碍事吧 :)</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;ListView
+</span><span class='line'>  tools:listheader="@layout/list_header"
+</span><span class='line'>  tools:listfooter="@layout/list_footer"
+</span><span class='line'>  tools:listitem="@layout/list_item"
+</span><span class='line'>  /&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>总结：以上设置可能大家觉得很繁琐，很麻烦，是否有必要花费时间做这些事情呢？我个人觉得，任何一个有追求的 Android 开发者都应该在学习在 xml 中设置 tools attributes，<strong>他可以让你还没运行就能发现更多UI上的问题，在多人协作的时候，也能让协作者更加方便地理解你的代码，避免部分属性的二次渲染(xml渲染一次，java修改渲染一次)</strong>，希望 google 能添加更多 tools attributes 特性，例如定义 merge 节点外层预览等。</p>
+
+<h1>Support Library Annotations</h1>
+
+<p>Support Library Annotations 相信大家都用过，相比 tools attributes，他所带来的好处更加明显，能够根据代码逻辑需要添加限制，并在编写/编译时对错误进行提示。在Library项目，多人协作中起到很好的辅导作用。</p>
+
+<h3>@Nullable 与 @NonNull</h3>
+
+<p>顾名思义，声明返回值/全局变量/参数可能为 null 或者不允许为 null，从而对潜在的 NullPointerException 进行警告, 例如访问一个@Nullable 的成员变量/函数，将 @Nullable 变量设置为 @NonNull 的参数等。我一般会结合 Gson 使用，最新的 ButterKnife 也用这个 annotation 替换了老版本内置的 @Optional。由于过于常用，这里就不贴 sample 了。</p>
+
+<h3>资源ID限制</h3>
+
+<p>限制参数只能为资源 ID 而非普通 int 数值，可用 annotation 类型如下：</p>
+
+<table>
+<thead>
+<tr>
+<th> Name </th>
+<th> Description          </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> @AnimatorRes </td>
+<td> R.animator.xxx </td>
+</tr>
+<tr>
+<td> @AnimRes </td>
+<td> R.anim.xxx </td>
+</tr>
+<tr>
+<td> @AnyRes </td>
+<td> 任意类型的资源 ID </td>
+</tr>
+<tr>
+<td> @ArrayRes </td>
+<td> R.array.xxx </td>
+</tr>
+<tr>
+<td> @AttrRes </td>
+<td> R.attr.xxx </td>
+</tr>
+<tr>
+<td> @BoolRes </td>
+<td> R.bool.xxx </td>
+</tr>
+<tr>
+<td> @ColorRes </td>
+<td> R.color.xxx </td>
+</tr>
+<tr>
+<td> @DimenRes </td>
+<td> R.dimen.xxx </td>
+</tr>
+<tr>
+<td> @DrawableRes </td>
+<td> R.drawable.xxx </td>
+</tr>
+<tr>
+<td> @FractionRes </td>
+<td> 3.14159 或者 10%p 之类的值，具体请查看 <code>getResources().getFraction()</code> 函数 </td>
+</tr>
+<tr>
+<td> @IdRes </td>
+<td> R.id.xxx </td>
+</tr>
+<tr>
+<td> @IntegerRes </td>
+<td> R.integer.xxx </td>
+</tr>
+<tr>
+<td> @InterpolatorRes </td>
+<td> R.interpolator.xxx </td>
+</tr>
+<tr>
+<td> @LayoutRes </td>
+<td> R.layout.xxx </td>
+</tr>
+<tr>
+<td> @MenuRes </td>
+<td> R.menu.xxx </td>
+</tr>
+<tr>
+<td> @PluralsRes </td>
+<td> 复数资源，具体案例下面会解释 </td>
+</tr>
+<tr>
+<td> @RawRes </td>
+<td> R.raw.xxx </td>
+</tr>
+<tr>
+<td> @StringRes </td>
+<td> R.string.xxx </td>
+</tr>
+<tr>
+<td> @StyleableRes </td>
+<td> R.styleable.xxx </td>
+</tr>
+<tr>
+<td> @StyleRes </td>
+<td> R.style.xxx </td>
+</tr>
+<tr>
+<td> @XmlRes </td>
+<td> R.xml.xxx </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>大部分都很好理解，其中可能比较陌生的就是 @FractionRes 与 @ PluralsRes 了。</p>
+
+<h4>@FractionRes</h4>
+
+<p>FractionRes 类型的资源在 Animation Xml 中比较常见，比如100%p，p代表parent，也就是占 parent 的 100%，例如在 TranslateAnimation 中就很常见（除非你能将 parent 大小 hardcode）</p>
+
+<h4>@PluralsRes</h4>
+
+<p>PluralsRes 没用过也是正常，英语的名字复数一般在后面加 s 或者 es，单数不用，所以在 String 格式化的时候需要用一种叫做 Plurals 的资源类型，sample 如下，简单易懂：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+</span><span class='line'>&lt;resources&gt;
+</span><span class='line'>    &lt;plurals name="tutorials"&gt;
+</span><span class='line'>        &lt;item quantity="zero"&gt;no Tutorial &lt;/item&gt;
+</span><span class='line'>        &lt;item quantity="one"&gt;one Tutorial &lt;/item&gt;
+</span><span class='line'>        &lt;item quantity="other"&gt;%d  Tutorials&lt;/item&gt;
+</span><span class='line'>    &lt;/plurals&gt;
+</span><span class='line'>&lt;/resources&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>顺便附上 java 调用</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>String quantityString = getResources().getQuantityString(R.plurals.tutorials,
+</span><span class='line'>    number);</span></code></pre></td></tr></table></div></figure>
+
+
+<p>资源 Annotation 强烈建议在 CustomView 中使用。</p>
+
+<h3>参数范围限制</h3>
+
+<ul>
+<li>@FloatRange</li>
+<li>@IntRange</li>
+</ul>
+
+
+<p>Sample：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>public void setAlpha(@IntRange(from=0, to=255) int alpha) { ... }</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>容器长度限制</h3>
+
+<p>@Size</p>
+
+<p>常见容器类都可使用，例如：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>public void setLocation(@Size(2) int[] location) { ... }</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>枚举限制</h3>
+
+<ul>
+<li>@IntDef</li>
+<li>@StringDef</li>
+</ul>
+
+
+<p>由于 Android 不推荐使用枚举，所以一般会用 int 或者 String 代替枚举，但是这样就缺少了取值限制，所以需要结合这两个 annotation 来使用。</p>
+
+<p>Sample：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>@Retention(RetentionPolicy.SOURCE)
+</span><span class='line'>@IntDef({ExpertHelpAdapter.TYPE_EMPTY, ExpertHelpAdapter.TYPE_LISTVIEW, ExpertHelpAdapter.TYPE_WEBVIEW})
+</span><span class='line'>public @interface AdapterType {}
+</span><span class='line'>
+</span><span class='line'>@AdapterType
+</span><span class='line'>private int mType = TYPE_WEBVIEW;
+</span><span class='line'>
+</span><span class='line'>@AdapterType
+</span><span class='line'>public int getType() {
+</span><span class='line'>    return mType;
+</span><span class='line'>}
+</span><span class='line'>
+</span><span class='line'>public void setType(@AdapterType int type) {
+</span><span class='line'>  mType = type;
+</span><span class='line'>  notifyDataSetChanged();
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>注意添加 <code>@Retention(RetentionPolicy.SOURCE)</code> ，指定此 annotation 只在代码中生效（非运行时），建议在所有替代枚举的地方使用。</p>
+
+<h3>线程限制</h3>
+
+<table>
+<thead>
+<tr>
+<th> Name </th>
+<th> Description          </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> @MainThread </td>
+<td> 只能在主线程线程运行 </td>
+</tr>
+<tr>
+<td> @UiThread </td>
+<td> 只能在UI线程运行 </td>
+</tr>
+<tr>
+<td> @BinderThread </td>
+<td> 只能在Binder线程运行 </td>
+</tr>
+<tr>
+<td> @WorkerThread </td>
+<td> 只能在自定义线程中运行 </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>这几个 annotation 我也没用过，查询了相关文档，作出解释如下：</p>
+
+<ul>
+<li>MainThread 与 UiThread 在大部分情况下可混用，可能是Application.onCreate 与 Activity.onCreate 的区别？只能等待大神解答了。</li>
+<li>BinderThread： ContentProvider 做增删改查的线程。</li>
+<li>WorkerThread： 自开线程，一般就是非UI线程。</li>
+</ul>
+
+
+<p>以上 Annotation 建议在多线程模块中使用，特别涉及 UI 回调与非 UI 回调。</p>
+
+<h3>架构注解？</h3>
+
+<ul>
+<li>@CallSuper：一般添加在函数声明处，要求覆盖时必须调用super实现。例如</li>
+</ul>
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>@CallSuper
+</span><span class='line'>protected void onCreate(@Nullable Bundle savedInstanceState) { ... }</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li>@CheckResult：确保函数返回值被使用，没有被忽略</li>
+<li>@VisibleForTesting：暴露测试接口用</li>
+</ul>
+
+
+<h3>权限限制</h3>
+
+<p>@RequiresPermission：检查相关权限是否已申请，建议在 library 项目中使用。</p>
+
+<h3>混淆限制</h3>
+
+<p>@Keep：混淆时保持变量或方法不被混淆，<strong>但该特性目前还未被支持</strong>。</p>
+
+<h3>调试用注解</h3>
+
+<p>@ViewDebug.ExportedProperty：添加在getXXX方法前，可让CustomView的内部参数在 Hierarchy Viewer 中查询，使用方法如下：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>@ExportedProperty(category = "layout")
+</span><span class='line'>int x = 1;
+</span><span class='line'>
+</span><span class='line'>@ExportedProperty(category = "layout")
+</span><span class='line'>public boolean isFocused() {
+</span><span class='line'>    return true;
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>其中 layout 为 Hierarchy Viewer 中的属性目录。</p>
+
+<p>但是我觉得这个注解实际意义不大，首先Hierarchy Viewer使用限制很多，需要 debug 版本的 ROM 才能正常开启，虽然有 ViewServer 这个 Library 可以尝试开启，但是成功率不高。其次是 Hierarchy Viewer dump 数据实在过慢，UI界面卡顿明显，稍微复杂一点的视图定位会耗费很多时间，而且很容易手机端 app crash，电脑 dump 数据丢失。所以，还是老老实实 log 或者断点调试吧……</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">杨辉</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-08-31T23:33:09+08:00" pubdate data-updated="true">Aug 31st, 2015</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yanghui.name/blog/2015/08/31/tools-namespace-and-support-library-annotations/" data-via="yugy1991" data-counturl="http://yanghui.name/blog/2015/08/31/tools-namespace-and-support-library-annotations/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/07/19/make-all-command-through-proxy/" title="Previous Post: Terminal 代理方案">&laquo; Terminal 代理方案</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/09/27/fragment-recreate-1/" title="Next Post: Fragment recreate(1)">Fragment recreate(1) &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+  <aside class="sidebar">
+   
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yanghui.name" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/09/28/fragment-recreate-2/">Fragment Recreate(2)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/27/fragment-recreate-1/">Fragment Recreate(1)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/31/tools-namespace-and-support-library-annotations/">Tools 命名空间的使用与 Support Library Annotations 介绍</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/19/make-all-command-through-proxy/">Terminal 代理方案</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/">Why Is ListView&#8217;s HeaderView/FooterView setVisibility(View.GONE) Not Working?</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating&#8230;</li>
+  </ul>
+  
+  <a href="https://github.com/kyze8439690">@kyze8439690</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'kyze8439690',
+            count: 11,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+<section>
+	<h1>Friendly Link</h1>
+	<ul id="recent_posts">
+      <li class="post">
+        <a href="http://daimajia.com/">http://daimajia.com/</a>
+      </li>
+  </ul>
+</section>
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/105933083684642036089?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+<section>
+  <link href="https://coderbits.com/content/widget/coderbits.css" media="all" rel="stylesheet" type="text/css">
+  <style type="text/css">
+    #coderbits {
+      margin: 10px 0 0 0;
+    }
+  </style>
+  <h1>Coderbits Portfolio</h1>
+  <section id="coderbits" data-coderbits-username="kyze8439690"></section>
+  <script src="https://coderbits.com/content/widget/coderbits.js"></script>
+</section>
+
+<section>
+  <h1>About Me</h1>
+  <p>A little something about me.</p>
+</section>
+
+  
+</aside>
+
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - 杨辉 -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'kyze8439690';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://yanghui.name/blog/2015/08/31/tools-namespace-and-support-library-annotations/';
+        var disqus_url = 'http://yanghui.name/blog/2015/08/31/tools-namespace-and-support-library-annotations/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+<script>
+  $(document).ready(function() {  
+    var stickyNavTop = $('nav').offset().top;  
+      
+    var stickyNav = function(){  
+      var scrollTop = $(window).scrollTop(); 
+      var navHasClassSticky = $('nav').hasClass('sticky');
+
+      if (scrollTop > stickyNavTop && navHasClassSticky) {   
+        return true;
+      } else if (scrollTop > stickyNavTop) {
+        $('nav').hide();
+        $('nav').addClass('sticky');
+        $('nav').fadeIn('2000');
+      } else {  
+        $('nav').removeClass('sticky');   
+      }  
+    };  
+      
+    stickyNav();  
+      
+    $(window).scroll(function() {  
+      stickyNav();  
+    });  
+  });  
+</script>
+
+
+</body>
+</html>

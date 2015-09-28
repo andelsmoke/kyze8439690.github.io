@@ -1,1 +1,756 @@
-My Octopress Page is coming soon &hellip;
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>杨辉的个人博客</title>
+  <meta name="author" content="杨辉">
+
+  
+  <meta name="description" content="除了常见的 Activity - Fragment 模式，还有 Activity - ViewPager - Fragment 模式，这种情况又略有不同。 有时候调试 activity recreate 的时候，会发现 ViewPager 变成一片空白，没有 Fragment 显示出来。该有的 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yanghui.name">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="杨辉的个人博客" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href='https://fonts.googleapis.com/css?family=Noto+Serif:400,700' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-46433471-3']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">杨辉的个人博客</a></h1>
+  
+    <h2>记录编程新的体会.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  
+  
+</ul>
+
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/09/28/fragment-recreate-2/">Fragment Recreate(2)</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-09-28T19:44:54+08:00" pubdate data-updated="true">Sep 28th, 2015</time>
+        
+           | <a href="/blog/2015/09/28/fragment-recreate-2/#disqus_thread"
+             data-disqus-identifier="http://yanghui.name/blog/2015/09/28/fragment-recreate-2/">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>除了常见的 Activity - Fragment 模式，还有 Activity - ViewPager - Fragment 模式，这种情况又略有不同。</p>
+
+<p>有时候调试 activity recreate 的时候，会发现 ViewPager 变成一片空白，没有 Fragment 显示出来。该有的 Fragment recreate 哪里去了？</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/09/28/fragment-recreate-2/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/09/27/fragment-recreate-1/">Fragment Recreate(1)</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-09-27T11:14:15+08:00" pubdate data-updated="true">Sep 27th, 2015</time>
+        
+           | <a href="/blog/2015/09/27/fragment-recreate-1/#disqus_thread"
+             data-disqus-identifier="http://yanghui.name/blog/2015/09/27/fragment-recreate-1/">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li><p>说明</p>
+
+<p>  一般都是用v4的Fragment实现，可以有<code>getChildFragmentManager()</code>的支持，这里以 v4 版本为例。</p></li>
+<li><p>命名</p>
+
+<p>  FragmentActivity 源码中的变量命名其实很乱，比如一个 FragmentManagerImpl 的实例，叫做 mFragments，后面需要注意。</p></li>
+</ul>
+
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/09/27/fragment-recreate-1/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/08/31/tools-namespace-and-support-library-annotations/">Tools 命名空间的使用与 Support Library Annotations 介绍</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-08-31T23:33:09+08:00" pubdate data-updated="true">Aug 31st, 2015</time>
+        
+           | <a href="/blog/2015/08/31/tools-namespace-and-support-library-annotations/#disqus_thread"
+             data-disqus-identifier="http://yanghui.name/blog/2015/08/31/tools-namespace-and-support-library-annotations/">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><a href="https://speakerdeck.com/rock3r/tools-of-the-trade-droidcon-nyc-2015">知识来源PPT</a></p>
+
+<h1>Tools 命名空间</h1>
+
+<p>tools 命名空间是在 Android Studio 中引入的 编辑预览特性，可以生成一些只在 IDE 预览界面生效的特性。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/08/31/tools-namespace-and-support-library-annotations/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/07/19/make-all-command-through-proxy/">Terminal 代理方案</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-07-19T22:03:31+08:00" pubdate data-updated="true">Jul 19th, 2015</time>
+        
+           | <a href="/blog/2015/07/19/make-all-command-through-proxy/#disqus_thread"
+             data-disqus-identifier="http://yanghui.name/blog/2015/07/19/make-all-command-through-proxy/">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>由于墙越建越高，现在想要访问国外的服务越来越难了。在购买了自己的VPS之后，可以基于各种方案建立对应的翻墙方案：</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/07/19/make-all-command-through-proxy/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/">Why Is ListView&#8217;s HeaderView/FooterView setVisibility(View.GONE) Not Working?</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-06-19T18:14:54+08:00" pubdate data-updated="true">Jun 19th, 2015</time>
+        
+           | <a href="/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/#disqus_thread"
+             data-disqus-identifier="http://yanghui.name/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>使用 <code>ListView</code> 的时候，根据需求需要动态将HeaderView/FooterView隐藏掉，这时你会发现 <code>setVisibility(View.GONE)</code> 根本没有效果，两个折衷的方案是:</p>
+
+<ul>
+<li>动态将HeaderView/FooterView remove掉，要显示的时候再add回去。</li>
+<li>在HeaderView/FooterView外面包一个Container ViewGroup(例如 <code>FrameLayout</code>)，再把这个Container作为HeaderView/FooterView add 到<code>ListView</code> 中。</li>
+</ul>
+
+
+<p>以上两个方案都能实现隐藏 HeaderView/FooterView 的效果。下面我从源码介绍以下为何 <code>View.GONE</code> 不生效，以及为何以上 workaround 能够生效的原因。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/05/19/view-and-viewgroups-measure-layout-and-draw/">View and ViewGroup&#8217;s Measure Layout and Draw</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-05-19T16:35:34+08:00" pubdate data-updated="true">May 19th, 2015</time>
+        
+           | <a href="/blog/2015/05/19/view-and-viewgroups-measure-layout-and-draw/#disqus_thread"
+             data-disqus-identifier="http://yanghui.name/blog/2015/05/19/view-and-viewgroups-measure-layout-and-draw/">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li>Begin from ViewRoot&rsquo;s performTrasversals() -> performMeasure() -> performLayout() -> performDraw()</li>
+<li><p>Measure: pass measurespec to all children and ask them to measure themselves base on the measurespec value</p>
+
+<p>  </div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/05/19/view-and-viewgroups-measure-layout-and-draw/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/01/2015-1-31-ali-technical-salon/">2015-1-31 阿里技术沙龙 - Android应用性能优化实践</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-02-01T11:42:04+08:00" pubdate data-updated="true">Feb 1st, 2015</time>
+        
+           | <a href="/blog/2015/02/01/2015-1-31-ali-technical-salon/#disqus_thread"
+             data-disqus-identifier="http://yanghui.name/blog/2015/02/01/2015-1-31-ali-technical-salon/">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>周末跑去深圳参加了一场阿里主持的技术沙龙，主题是《如何构建高可用的APP》，沙龙中相关的ppt和视频可以在他们的<a href="http://weibo.com/taobaodeveloperclub">微博</a>中找到。沙龙中收获比较大的是有关UC的何杰分享的Android应用性能优化实践，和手Q web业务优化的解析。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/02/01/2015-1-31-ali-technical-salon/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/01/20/android-developer-tools/">Android Developer Tools（开发人员工具）</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-01-20T15:01:18+08:00" pubdate data-updated="true">Jan 20th, 2015</time>
+        
+           | <a href="/blog/2015/01/20/android-developer-tools/#disqus_thread"
+             data-disqus-identifier="http://yanghui.name/blog/2015/01/20/android-developer-tools/">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>在做Android开发的过程中，不可避免地需要使用到自带的android developer tools（开发人员工具），这是一个强大的开发辅助工具，随着android版本的更新，developer tools也集成了越来越多十分方便的调试功能，这里以android 4.4.4版本为例子，说说其中一部分我常用工具的使用（恕我才疏学浅没能全部懂用）。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/01/20/android-developer-tools/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/10/17/managing-touch-events-in-a-viewgroup/">(译)在ViewGroup中处理Touch Events</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2013-10-17T00:18:00+08:00" pubdate data-updated="true">Oct 17th, 2013</time>
+        
+           | <a href="/blog/2013/10/17/managing-touch-events-in-a-viewgroup/#disqus_thread"
+             data-disqus-identifier="http://yanghui.name/blog/2013/10/17/managing-touch-events-in-a-viewgroup/">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>在一个<a href="http://developer.android.com/reference/android/view/ViewGroup.html"><code>ViewGroup</code></a>中处理touch events需要格外注意。因为在<a href="http://developer.android.com/reference/android/view/ViewGroup.html"><code>ViewGroup</code></a>里面有着各种要处理不同touch events的子view，这是很常见的。为了确保每个view能正确地获取到属于他的touch events，我们必须覆盖<a href="http://developer.android.com/reference/android/view/ViewGroup.html#onInterceptTouchEvent(android.view.MotionEvent)"><code>onInterceptTouchEvent()</code></a>函数。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2013/10/17/managing-touch-events-in-a-viewgroup/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/03/fix-android-2-dot-3-can-not-decode-bitmap-in-rgba8888/">修复android 2.3 不能以RGBA8888格式解析图片的问题</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2013-09-03T22:58:00+08:00" pubdate data-updated="true">Sep 3rd, 2013</time>
+        
+           | <a href="/blog/2013/09/03/fix-android-2-dot-3-can-not-decode-bitmap-in-rgba8888/#disqus_thread"
+             data-disqus-identifier="http://yanghui.name/blog/2013/09/03/fix-android-2-dot-3-can-not-decode-bitmap-in-rgba8888/">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>在android 2.3,解析bitmap的时候，不能用RGBA8888格式解析图片成bitmap，只能解析成RGB565,就算加了Config也一样。
+在android google code project上的解释是这样的：<a href="https://code.google.com/p/android/issues/detail?id=13038">https://code.google.com/p/android/issues/detail?id=13038</a> <br/>
+大致意思就是，原本记录了这个issue，然后被脚本自动标记为close了，导致这个bug没有修复。好吧，看来只能自己解决这个问题了。
+在网上搜了一番，偶然发现一个曲线救国的方法。</p>
+
+<div><script src='https://gist.github.com/7408999.js?file=convertBitmap.java'></script>
+<noscript><pre><code>public static Bitmap convert(Bitmap bitmap, Bitmap.Config config) {
+    Bitmap convertedBitmap = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), config);
+    Canvas canvas = new Canvas(convertedBitmap);
+    Paint paint = new Paint();
+    paint.setColor(Color.BLACK);
+    canvas.drawBitmap(bitmap, 0, 0, paint);
+    return convertedBitmap;
+}</code></pre></noscript></div>
+
+
+<p>这个函数是最近在研究zxing解析本地图片时候发现的，突然发现这个函数貌似能用与解决不能解析为RGBA8888的bug，在测试之后，果然生效了。使用方法如下：</p>
+
+<pre><code>Bitmap bitmap = convert(bitmap, Bitmap.Config.ARGB_8888);
+</code></pre>
+
+<p>这个函数用的也是很曲线救国的方法了，用canvas将原来的bitmap画到属性为RGBA8888的空bitmap上，成功绕过了android 2.3不能直接解析为RGBA8888的bug。<br/>
+（吐槽：做android开发越久越觉得android坑啊……）</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+   
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yanghui.name" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/09/28/fragment-recreate-2/">Fragment Recreate(2)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/27/fragment-recreate-1/">Fragment Recreate(1)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/31/tools-namespace-and-support-library-annotations/">Tools 命名空间的使用与 Support Library Annotations 介绍</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/19/make-all-command-through-proxy/">Terminal 代理方案</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/">Why Is ListView&#8217;s HeaderView/FooterView setVisibility(View.GONE) Not Working?</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating&#8230;</li>
+  </ul>
+  
+  <a href="https://github.com/kyze8439690">@kyze8439690</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'kyze8439690',
+            count: 11,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+<section>
+	<h1>Friendly Link</h1>
+	<ul id="recent_posts">
+      <li class="post">
+        <a href="http://daimajia.com/">http://daimajia.com/</a>
+      </li>
+  </ul>
+</section>
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/105933083684642036089?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+<section>
+  <link href="https://coderbits.com/content/widget/coderbits.css" media="all" rel="stylesheet" type="text/css">
+  <style type="text/css">
+    #coderbits {
+      margin: 10px 0 0 0;
+    }
+  </style>
+  <h1>Coderbits Portfolio</h1>
+  <section id="coderbits" data-coderbits-username="kyze8439690"></section>
+  <script src="https://coderbits.com/content/widget/coderbits.js"></script>
+</section>
+
+<section>
+  <h1>About Me</h1>
+  <p>A little something about me.</p>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - 杨辉 -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'kyze8439690';
+      
+        
+        var disqus_script = 'count.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+<script>
+  $(document).ready(function() {  
+    var stickyNavTop = $('nav').offset().top;  
+      
+    var stickyNav = function(){  
+      var scrollTop = $(window).scrollTop(); 
+      var navHasClassSticky = $('nav').hasClass('sticky');
+
+      if (scrollTop > stickyNavTop && navHasClassSticky) {   
+        return true;
+      } else if (scrollTop > stickyNavTop) {
+        $('nav').hide();
+        $('nav').addClass('sticky');
+        $('nav').fadeIn('2000');
+      } else {  
+        $('nav').removeClass('sticky');   
+      }  
+    };  
+      
+    stickyNav();  
+      
+    $(window).scroll(function() {  
+      stickyNav();  
+    });  
+  });  
+</script>
+
+
+</body>
+</html>

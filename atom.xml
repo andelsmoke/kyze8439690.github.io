@@ -1,0 +1,1436 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[杨辉的个人博客]]></title>
+  <link href="http://yanghui.name/atom.xml" rel="self"/>
+  <link href="http://yanghui.name/"/>
+  <updated>2015-09-28T20:09:43+08:00</updated>
+  <id>http://yanghui.name/</id>
+  <author>
+    <name><![CDATA[杨辉]]></name>
+    <email><![CDATA[me@yanghui.name]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Fragment Recreate(2)]]></title>
+    <link href="http://yanghui.name/blog/2015/09/28/fragment-recreate-2/"/>
+    <updated>2015-09-28T19:44:54+08:00</updated>
+    <id>http://yanghui.name/blog/2015/09/28/fragment-recreate-2</id>
+    <content type="html"><![CDATA[<p>除了常见的 Activity - Fragment 模式，还有 Activity - ViewPager - Fragment 模式，这种情况又略有不同。</p>
+
+<p>有时候调试 activity recreate 的时候，会发现 ViewPager 变成一片空白，没有 Fragment 显示出来。该有的 Fragment recreate 哪里去了？</p>
+
+<!-- more -->
+
+
+<p>查看 FragmentAdapter 的源码中的<code>instantiateItem()</code>函数，代码如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="n">Object</span> <span class="nf">instantiateItem</span><span class="o">(</span><span class="n">ViewGroup</span> <span class="n">container</span><span class="o">,</span> <span class="kt">int</span> <span class="n">position</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>   <span class="k">if</span> <span class="o">(</span><span class="n">mCurTransaction</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">mCurTransaction</span> <span class="o">=</span> <span class="n">mFragmentManager</span><span class="o">.</span><span class="na">beginTransaction</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="kd">final</span> <span class="kt">long</span> <span class="n">itemId</span> <span class="o">=</span> <span class="n">getItemId</span><span class="o">(</span><span class="n">position</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">String</span> <span class="n">name</span> <span class="o">=</span> <span class="n">makeFragmentName</span><span class="o">(</span><span class="n">container</span><span class="o">.</span><span class="na">getId</span><span class="o">(),</span> <span class="n">itemId</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">Fragment</span> <span class="n">fragment</span> <span class="o">=</span> <span class="n">mFragmentManager</span><span class="o">.</span><span class="na">findFragmentByTag</span><span class="o">(</span><span class="n">name</span><span class="o">);</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">fragment</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">mCurTransaction</span><span class="o">.</span><span class="na">attach</span><span class="o">(</span><span class="n">fragment</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">fragment</span> <span class="o">=</span> <span class="n">getItem</span><span class="o">(</span><span class="n">position</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">mCurTransaction</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">container</span><span class="o">.</span><span class="na">getId</span><span class="o">(),</span> <span class="n">fragment</span><span class="o">,</span>
+</span><span class='line'>                <span class="n">makeFragmentName</span><span class="o">(</span><span class="n">container</span><span class="o">.</span><span class="na">getId</span><span class="o">(),</span> <span class="n">itemId</span><span class="o">));</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>  <span class="c1">//...</span>
+</span><span class='line'>    <span class="k">return</span> <span class="n">fragment</span><span class="o">;</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看出，这里的逻辑为，如果 FragmentManager 中有可用的 Fragment 实例，就直接使用该实例，避免重复创建。否则才通过<code>getItem()</code>函数创建新的 fragment 实例。这里有一个细节，就是 Fragment 的 tag 是通过 makeFragmentName() 函数获取。具体代码如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kd">static</span> <span class="n">String</span> <span class="nf">makeFragmentName</span><span class="o">(</span><span class="kt">int</span> <span class="n">viewId</span><span class="o">,</span> <span class="kt">long</span> <span class="n">id</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">return</span> <span class="s">&quot;android:switcher:&quot;</span> <span class="o">+</span> <span class="n">viewId</span> <span class="o">+</span> <span class="s">&quot;:&quot;</span> <span class="o">+</span> <span class="n">id</span><span class="o">;</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这里的 viewId 就是 containerId，也就是 ViewPager 的 id；id 就是 getItemId()，也就是 position。所以以后可以通过构造这个 tag 直接将 ViewPager 的 Fragment find 出来（你可以在你的代码中这样做，注意类型检测与 NullPointer）。这里也是第一个关键点：<strong>ViewPager 必须拥有 id</strong>，否则 ViewPager 中的 Fragment 可能无法恢复。</p>
+
+<p>回到刚刚的<code>instantiateItem()</code>函数，两条路径都只是 beginTransaction 却没有 commit，commit 操作在<code>finishUpdate()</code>中完成。代码如下：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">finishUpdate</span><span class="o">(</span><span class="n">ViewGroup</span> <span class="n">container</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">if</span> <span class="o">(</span><span class="n">mCurTransaction</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">mCurTransaction</span><span class="o">.</span><span class="na">commitAllowingStateLoss</span><span class="o">();</span>
+</span><span class='line'>        <span class="n">mCurTransaction</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>    <span class="c1">//为了gc？</span>
+</span><span class='line'>        <span class="n">mFragmentManager</span><span class="o">.</span><span class="na">executePendingTransactions</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看到，这里用的是 commitAllowingStateLoss()，而不是 commit，而且紧随一个 executePendingTransactions 使之生效。我个人的猜测是为了防止 activity 在后台的时候 commit 导致 crash（系统不允许 activity 在<code>onSaveInstanceState()</code>之后做 fragment transaction操作，以防止状态丢失）   。有失必有得，避免了crash，就可能导致 state 丢失。所以这里就引来了第二个关键点：<strong>避免 activity 在后台的时候更换当前 fragment</strong>，你可以检测 activity 状态，有必要的时候将操作封装在 Runnable 中，activity resume 之后执行这个 Runnable。只要在 resume 之后做 commit，那么 fragment state 就能被正确地保存。</p>
+
+<p>在上一篇 blog 中，我提到过，Activity，View/ViewGroup，Fragment都能自动保存 state 并事后恢复，这里可不包括PagerAdapter。实际测试发现，recreate之后，viewPager.getAdapter() 为 null。既然没有 adapter，那么也就不会有 instantiateItem 啦。所以第三个要点是：<strong>recreate 之后必须调用 setAdapter</strong>，并且<code>getItemId()</code>必须返回和先前一样的值，以便 adapter 将 fragment item恢复出来。</p>
+
+<p>还有一个细节就是，如果你的结构是 Activity : Fragment : ViewPager : Fragment 的话，那么在第一个 Fragment 中 new adapter 的时候，必须使用<code>getChildFragmentManager()</code>，而不是<code>getFragmentManager()</code>。childFramentManager 会给每一个 fragment 赋予正确的 parentFragment，以便后面恢复 fragment的时候恢复正确的 mWho 值（内部标识）。</p>
+
+<p>总结以上，要 ViewPager 中的 Fragment 能正确回复，需要注意：</p>
+
+<ul>
+<li>ViewPager 要有 id</li>
+<li>避免 Activity 在后台的更换当前 Fragment（commit操作）</li>
+<li>Activity recreate 之后必须调用 setAdapter 并保障 itemId 一致。</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Fragment Recreate(1)]]></title>
+    <link href="http://yanghui.name/blog/2015/09/27/fragment-recreate-1/"/>
+    <updated>2015-09-27T11:14:15+08:00</updated>
+    <id>http://yanghui.name/blog/2015/09/27/fragment-recreate-1</id>
+    <content type="html"><![CDATA[<ul>
+<li><p>说明</p>
+
+<p>  一般都是用v4的Fragment实现，可以有<code>getChildFragmentManager()</code>的支持，这里以 v4 版本为例。</p></li>
+<li><p>命名</p>
+
+<p>  FragmentActivity 源码中的变量命名其实很乱，比如一个 FragmentManagerImpl 的实例，叫做 mFragments，后面需要注意。</p></li>
+</ul>
+
+
+<!-- more -->
+
+
+<ul>
+<li><p>保存与恢复</p>
+
+<p>  FragmentActivity.onCreate() 中有这样一个函数：<code>getLastNonConfigurationInstance()</code>
+与之相对应的有<code>onRetainNonConfigurationInstance()</code>。</p>
+
+<ul>
+<li><code>onRetainNonConfigurationInstance()</code>：将要保存的实例保存起来，在 recreate 之后恢复。需要注意的是，函数的返回类型是 Object，说明这里保存的是任何实例（Activity，Fragment，etc），而不是 SaveState。与利用 SaveState 新建实例恢复状态不同的方式不同。这个方法在 api level 13 中取消使用。FragmentActivity 中覆盖了Activity 的这个方法，加入了一些额外的 Object，比如一个 Fragment 组和一个 Loader 组。现在要用原来<code>onRetainNonConfigurationInstance()</code>方法来保存 Object 的话，请使用<code>onRetainCustomNonConfigurationInstance()</code>方法。</li>
+<li><code>getLastNonConfigurationInstance()</code>：这个方法返回了一个 NonConfigurationInstances 实例，里面包含了上面所说保存的 Fragment 实例组和 Loader 实例组。</li>
+</ul>
+
+
+<p>  FragmentActivity 利用上面两个函数来还原部分 Fragment 和 Loader。为什么是部分 Fragment 呢？因为这个是有选择的筛选，判断原则就是 fragment 是不是<code>mRetainInstance</code>等于 true。还记得有一个 hold 住 fragment 实例的例子吗？一个包含 AsyncTask 的 fragment，在屏幕旋转 Activity recreate 之后，fragment 中的 AsyncTask 并没有重新跑，而是继续执行。那个例子的关键，就是 fragment 初始化之后，需要调用<code>setRetainIntance(true)</code>方法，将 <code>mRetainInstance</code> 赋值为 true。所以 FragmentActivity 会将所有这种类型的 Fragment 都用 <code>onRetainCustomNonConfigurationInstance()</code> 方法保存起来，以便 AsyncTask 继续执行。</p>
+
+<p>  同理，Loader 本来的作用就是，在 Activity recreate 之后，避免重新 load 的过程。所以 FragmentActivity 也会利用这个方法将<strong>所有</strong> loader 保存起来，recreate 之后复用。</p>
+
+<p>  具体代码如下：</p>
+
+<pre><code class="``java">  public final Object onRetainNonConfigurationInstance() {
+      //...
+      Object custom = onRetainCustomNonConfigurationInstance();    //覆盖这个函数来保存自己的Object
+      ArrayList&lt;Fragment&gt; fragments = mFragments.retainNonConfig();
+      //...
+      if (fragments == null &amp;&amp; !retainLoaders &amp;&amp; custom == null) {
+          return null;
+      }
+
+      NonConfigurationInstances nci = new NonConfigurationInstances();
+      nci.activity = null;
+      nci.custom = custom;
+      nci.children = null;
+      nci.fragments = fragments;
+      nci.loaders = mAllLoaderManagers;
+      return nci;
+  }
+</code></pre>
+
+<p>  <code>retainNonConfig()</code>的实现如下（这函数的命名我也没懂）：</p>
+
+<pre><code class="``java">ArrayList&lt;Fragment&gt; retainNonConfig() {
+      ArrayList&lt;Fragment&gt; fragments = null;
+      if (mActive != null) {
+          for (int i=0; i&lt;mActive.size(); i++) {
+              Fragment f = mActive.get(i);
+              if (f != null &amp;&amp; f.mRetainInstance) {
+                  if (fragments == null) {
+                      fragments = new ArrayList&lt;Fragment&gt;();
+                  }
+                  fragments.add(f);
+                  f.mRetaining = true;
+                  f.mTargetIndex = f.mTarget != null ? f.mTarget.mIndex : -1;
+                  if (DEBUG) Log.v(TAG, "retainNonConfig: keeping retained " + f);
+              }
+          }
+      }
+      return fragments;
+  }
+</code></pre>
+
+<p>  那剩下部分的 fragment 如何恢复呢？这就要靠常见的 create ＋ restore state 模式了。</p>
+
+<p>  android 源码中很多地方都用到这种 create ＋ restore 的模式，比如 Activity，View/ViewGroup，Fragment 等。如果 fragment.mRetainInstance 等于 false，则采用下面的代码来保存（<code>FragmentActivity.onSaveInstanceState()</code>）:</p>
+
+<pre><code class="``java">  protected void onSaveInstanceState(Bundle outState) {
+      super.onSaveInstanceState(outState);
+      Parcelable p = mFragments.saveAllState();
+      if (p != null) {
+          outState.putParcelable(FRAGMENTS_TAG, p);
+      }
+  }
+</code></pre>
+
+<p>  这里的 mFragments 其实是一个 FragmentManagerImpl 实例，前面说过了。他的 onSaveInstanceState 方法中用了一个类，叫做 <code>FragmentState</code>，用来保存 Fragment 的状态。其中包含的关键元素有：</p>
+
+<ul>
+<li>ClassName：fragment 的具体类名</li>
+<li>Index：fragment 在 Activity 中的下标，一个 Activity 含有多个 Fragment</li>
+<li>FragmentId：如果 Fragment 是在 xml 中初始化的话，则为 xml 中的ID，否则和下面的 containerId 一致</li>
+<li>ContainerId：<code>add(R.id.container, mFragment)</code>中的container id</li>
+<li>Tag：add 的时候用的 tag</li>
+<li>Detached：fragment 状态</li>
+<li>Arguments：<code>fragment.setArguments(args)</code>的 Bundle 类型参数</li>
+</ul>
+
+
+<p>  观察上面的元素，可以发现足以重建一个完整的 fragment，类型，参数，状态，id，tag 都有了。而 fragment 内部 View 的状态则用 View 自带的状态恢复机制去恢复。当然这里要求你用标准的模式去初始化一个fragment，new ＋ setArguments()，如果你用new ＋ 自定义setXXX方法的话，那这里就不能正常恢复了。</p>
+
+<p>  两种保存机制对应的恢复代码在 <code>FragmentManager.restoreAllState()</code>中，内容太长这里就不贴了。大致逻辑为：恢复 retain fragments -> 恢复 state fragments -> 指定 target fragment -> 重建 added fragment 组 -> 重建 backStack</p>
+
+<p>  正因为 fragment 自带这种简单的 fragment 恢复机制，我们经常看见很多源码的 activity 的 onCreate 中，如果 savedInstanceState 为 null，才做 fragment traction 操作，避免重复 add。</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Tools 命名空间的使用与 Support Library Annotations 介绍]]></title>
+    <link href="http://yanghui.name/blog/2015/08/31/tools-namespace-and-support-library-annotations/"/>
+    <updated>2015-08-31T23:33:09+08:00</updated>
+    <id>http://yanghui.name/blog/2015/08/31/tools-namespace-and-support-library-annotations</id>
+    <content type="html"><![CDATA[<p><a href="https://speakerdeck.com/rock3r/tools-of-the-trade-droidcon-nyc-2015">知识来源PPT</a></p>
+
+<h1>Tools 命名空间</h1>
+
+<p>tools 命名空间是在 Android Studio 中引入的 编辑预览特性，可以生成一些只在 IDE 预览界面生效的特性。</p>
+
+<!-- more -->
+
+
+<h3>属性预览</h3>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;TextView
+</span><span class='line'>  tools:text="test title"
+</span><span class='line'>  /&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这个属性应该很多人都用过，设置只在 IDE 预览界面生效的属性。可以方便地对照设计稿调 UI 而避免将预览属性编译进 apk 中（是否会编译进 apk 我也没具体验证过，不过 android 在遇到不支持的 xml 属性会直接忽略，所以无伤大碍）。而且这些属性在被include的时候能够保持，所以推荐在 headerView，footerView，adapterItem，activity，fragment 等xml中使用，在 CustemView 中配合 <code>isInEditMode()</code> 函数使用更佳！不过没有代码提示功能有点遗憾。</p>
+
+<h3>Lint提示忽略</h3>
+
+<p>对于有洁癖的人来说，XML Editor 有很多小黄点实在无法忍受。比如布局的 RTL 支持，ImageView 的 description 定义等。这些属性虽然官方建议添加，但是在实际开发环境做支持实在有点困难。这时候就可以用 <code>tools:ignore</code> 属性将小黄点去处，我常用的 ignore 属性如下：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>tools:ignore="ContentDescription, RtlHardcoded"</span></code></pre></td></tr></table></div></figure>
+
+
+<p>有时候在 Style 中需要对原生属性和 appcompat 自定义属性同时设置，但是原生属性在低版本上不支持，当然就如我前面说的，android 在遇到不支持的属性会直接忽略，但是如果强迫发作，可以用下面的方法忽略：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;item name="android:actionModeShareDrawable" tools:ignore="NewApi"&gt;@drawable/ic_abc_share&lt;/item&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>风格套用</h3>
+
+<p>这个是我比较少用的属性，举例如下，大家可以试试：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;merge
+</span><span class='line'>  tools:context=".MainActivity"
+</span><span class='line'>  tools:showIn="@layout/activity_main"
+</span><span class='line'>  tools:menu="map"
+</span><span class='line'>  tools:actionBarNavStyle="tabs"
+</span><span class='line'>  /&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;fragment
+</span><span class='line'>  tools:layout="@layout/fragment_main"
+</span><span class='line'>  /&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>ListView 预览</h3>
+
+<p>正常情况下，大家的 ListView 预览都是千篇一律的固定样式。其实可以套用 HeaderView/FooterView/ItemView 到预览界面中，需要注意的是，itemView 预览的 tools:attribute 只在第一个 item 中生效，但是我想应该不碍事吧 :)</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;ListView
+</span><span class='line'>  tools:listheader="@layout/list_header"
+</span><span class='line'>  tools:listfooter="@layout/list_footer"
+</span><span class='line'>  tools:listitem="@layout/list_item"
+</span><span class='line'>  /&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>总结：以上设置可能大家觉得很繁琐，很麻烦，是否有必要花费时间做这些事情呢？我个人觉得，任何一个有追求的 Android 开发者都应该在学习在 xml 中设置 tools attributes，<strong>他可以让你还没运行就能发现更多UI上的问题，在多人协作的时候，也能让协作者更加方便地理解你的代码，避免部分属性的二次渲染(xml渲染一次，java修改渲染一次)</strong>，希望 google 能添加更多 tools attributes 特性，例如定义 merge 节点外层预览等。</p>
+
+<h1>Support Library Annotations</h1>
+
+<p>Support Library Annotations 相信大家都用过，相比 tools attributes，他所带来的好处更加明显，能够根据代码逻辑需要添加限制，并在编写/编译时对错误进行提示。在Library项目，多人协作中起到很好的辅导作用。</p>
+
+<h3>@Nullable 与 @NonNull</h3>
+
+<p>顾名思义，声明返回值/全局变量/参数可能为 null 或者不允许为 null，从而对潜在的 NullPointerException 进行警告, 例如访问一个@Nullable 的成员变量/函数，将 @Nullable 变量设置为 @NonNull 的参数等。我一般会结合 Gson 使用，最新的 ButterKnife 也用这个 annotation 替换了老版本内置的 @Optional。由于过于常用，这里就不贴 sample 了。</p>
+
+<h3>资源ID限制</h3>
+
+<p>限制参数只能为资源 ID 而非普通 int 数值，可用 annotation 类型如下：</p>
+
+<table>
+<thead>
+<tr>
+<th> Name </th>
+<th> Description          </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> @AnimatorRes </td>
+<td> R.animator.xxx </td>
+</tr>
+<tr>
+<td> @AnimRes </td>
+<td> R.anim.xxx </td>
+</tr>
+<tr>
+<td> @AnyRes </td>
+<td> 任意类型的资源 ID </td>
+</tr>
+<tr>
+<td> @ArrayRes </td>
+<td> R.array.xxx </td>
+</tr>
+<tr>
+<td> @AttrRes </td>
+<td> R.attr.xxx </td>
+</tr>
+<tr>
+<td> @BoolRes </td>
+<td> R.bool.xxx </td>
+</tr>
+<tr>
+<td> @ColorRes </td>
+<td> R.color.xxx </td>
+</tr>
+<tr>
+<td> @DimenRes </td>
+<td> R.dimen.xxx </td>
+</tr>
+<tr>
+<td> @DrawableRes </td>
+<td> R.drawable.xxx </td>
+</tr>
+<tr>
+<td> @FractionRes </td>
+<td> 3.14159 或者 10%p 之类的值，具体请查看 <code>getResources().getFraction()</code> 函数 </td>
+</tr>
+<tr>
+<td> @IdRes </td>
+<td> R.id.xxx </td>
+</tr>
+<tr>
+<td> @IntegerRes </td>
+<td> R.integer.xxx </td>
+</tr>
+<tr>
+<td> @InterpolatorRes </td>
+<td> R.interpolator.xxx </td>
+</tr>
+<tr>
+<td> @LayoutRes </td>
+<td> R.layout.xxx </td>
+</tr>
+<tr>
+<td> @MenuRes </td>
+<td> R.menu.xxx </td>
+</tr>
+<tr>
+<td> @PluralsRes </td>
+<td> 复数资源，具体案例下面会解释 </td>
+</tr>
+<tr>
+<td> @RawRes </td>
+<td> R.raw.xxx </td>
+</tr>
+<tr>
+<td> @StringRes </td>
+<td> R.string.xxx </td>
+</tr>
+<tr>
+<td> @StyleableRes </td>
+<td> R.styleable.xxx </td>
+</tr>
+<tr>
+<td> @StyleRes </td>
+<td> R.style.xxx </td>
+</tr>
+<tr>
+<td> @XmlRes </td>
+<td> R.xml.xxx </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>大部分都很好理解，其中可能比较陌生的就是 @FractionRes 与 @ PluralsRes 了。</p>
+
+<h4>@FractionRes</h4>
+
+<p>FractionRes 类型的资源在 Animation Xml 中比较常见，比如100%p，p代表parent，也就是占 parent 的 100%，例如在 TranslateAnimation 中就很常见（除非你能将 parent 大小 hardcode）</p>
+
+<h4>@PluralsRes</h4>
+
+<p>PluralsRes 没用过也是正常，英语的名字复数一般在后面加 s 或者 es，单数不用，所以在 String 格式化的时候需要用一种叫做 Plurals 的资源类型，sample 如下，简单易懂：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+</span><span class='line'>&lt;resources&gt;
+</span><span class='line'>    &lt;plurals name="tutorials"&gt;
+</span><span class='line'>        &lt;item quantity="zero"&gt;no Tutorial &lt;/item&gt;
+</span><span class='line'>        &lt;item quantity="one"&gt;one Tutorial &lt;/item&gt;
+</span><span class='line'>        &lt;item quantity="other"&gt;%d  Tutorials&lt;/item&gt;
+</span><span class='line'>    &lt;/plurals&gt;
+</span><span class='line'>&lt;/resources&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>顺便附上 java 调用</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>String quantityString = getResources().getQuantityString(R.plurals.tutorials,
+</span><span class='line'>    number);</span></code></pre></td></tr></table></div></figure>
+
+
+<p>资源 Annotation 强烈建议在 CustomView 中使用。</p>
+
+<h3>参数范围限制</h3>
+
+<ul>
+<li>@FloatRange</li>
+<li>@IntRange</li>
+</ul>
+
+
+<p>Sample：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>public void setAlpha(@IntRange(from=0, to=255) int alpha) { ... }</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>容器长度限制</h3>
+
+<p>@Size</p>
+
+<p>常见容器类都可使用，例如：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>public void setLocation(@Size(2) int[] location) { ... }</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>枚举限制</h3>
+
+<ul>
+<li>@IntDef</li>
+<li>@StringDef</li>
+</ul>
+
+
+<p>由于 Android 不推荐使用枚举，所以一般会用 int 或者 String 代替枚举，但是这样就缺少了取值限制，所以需要结合这两个 annotation 来使用。</p>
+
+<p>Sample：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>@Retention(RetentionPolicy.SOURCE)
+</span><span class='line'>@IntDef({ExpertHelpAdapter.TYPE_EMPTY, ExpertHelpAdapter.TYPE_LISTVIEW, ExpertHelpAdapter.TYPE_WEBVIEW})
+</span><span class='line'>public @interface AdapterType {}
+</span><span class='line'>
+</span><span class='line'>@AdapterType
+</span><span class='line'>private int mType = TYPE_WEBVIEW;
+</span><span class='line'>
+</span><span class='line'>@AdapterType
+</span><span class='line'>public int getType() {
+</span><span class='line'>    return mType;
+</span><span class='line'>}
+</span><span class='line'>
+</span><span class='line'>public void setType(@AdapterType int type) {
+</span><span class='line'>  mType = type;
+</span><span class='line'>  notifyDataSetChanged();
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>注意添加 <code>@Retention(RetentionPolicy.SOURCE)</code> ，指定此 annotation 只在代码中生效（非运行时），建议在所有替代枚举的地方使用。</p>
+
+<h3>线程限制</h3>
+
+<table>
+<thead>
+<tr>
+<th> Name </th>
+<th> Description          </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td> @MainThread </td>
+<td> 只能在主线程线程运行 </td>
+</tr>
+<tr>
+<td> @UiThread </td>
+<td> 只能在UI线程运行 </td>
+</tr>
+<tr>
+<td> @BinderThread </td>
+<td> 只能在Binder线程运行 </td>
+</tr>
+<tr>
+<td> @WorkerThread </td>
+<td> 只能在自定义线程中运行 </td>
+</tr>
+</tbody>
+</table>
+
+
+<p>这几个 annotation 我也没用过，查询了相关文档，作出解释如下：</p>
+
+<ul>
+<li>MainThread 与 UiThread 在大部分情况下可混用，可能是Application.onCreate 与 Activity.onCreate 的区别？只能等待大神解答了。</li>
+<li>BinderThread： ContentProvider 做增删改查的线程。</li>
+<li>WorkerThread： 自开线程，一般就是非UI线程。</li>
+</ul>
+
+
+<p>以上 Annotation 建议在多线程模块中使用，特别涉及 UI 回调与非 UI 回调。</p>
+
+<h3>架构注解？</h3>
+
+<ul>
+<li>@CallSuper：一般添加在函数声明处，要求覆盖时必须调用super实现。例如</li>
+</ul>
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>@CallSuper
+</span><span class='line'>protected void onCreate(@Nullable Bundle savedInstanceState) { ... }</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li>@CheckResult：确保函数返回值被使用，没有被忽略</li>
+<li>@VisibleForTesting：暴露测试接口用</li>
+</ul>
+
+
+<h3>权限限制</h3>
+
+<p>@RequiresPermission：检查相关权限是否已申请，建议在 library 项目中使用。</p>
+
+<h3>混淆限制</h3>
+
+<p>@Keep：混淆时保持变量或方法不被混淆，<strong>但该特性目前还未被支持</strong>。</p>
+
+<h3>调试用注解</h3>
+
+<p>@ViewDebug.ExportedProperty：添加在getXXX方法前，可让CustomView的内部参数在 Hierarchy Viewer 中查询，使用方法如下：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>@ExportedProperty(category = "layout")
+</span><span class='line'>int x = 1;
+</span><span class='line'>
+</span><span class='line'>@ExportedProperty(category = "layout")
+</span><span class='line'>public boolean isFocused() {
+</span><span class='line'>    return true;
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>其中 layout 为 Hierarchy Viewer 中的属性目录。</p>
+
+<p>但是我觉得这个注解实际意义不大，首先Hierarchy Viewer使用限制很多，需要 debug 版本的 ROM 才能正常开启，虽然有 ViewServer 这个 Library 可以尝试开启，但是成功率不高。其次是 Hierarchy Viewer dump 数据实在过慢，UI界面卡顿明显，稍微复杂一点的视图定位会耗费很多时间，而且很容易手机端 app crash，电脑 dump 数据丢失。所以，还是老老实实 log 或者断点调试吧……</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Terminal 代理方案]]></title>
+    <link href="http://yanghui.name/blog/2015/07/19/make-all-command-through-proxy/"/>
+    <updated>2015-07-19T22:03:31+08:00</updated>
+    <id>http://yanghui.name/blog/2015/07/19/make-all-command-through-proxy</id>
+    <content type="html"><![CDATA[<p>由于墙越建越高，现在想要访问国外的服务越来越难了。在购买了自己的VPS之后，可以基于各种方案建立对应的翻墙方案：</p>
+
+<!-- more -->
+
+
+<ul>
+<li>Windows/Linux/Mac/Android: shadowsocks ( PAC )</li>
+<li>iOS: AnyConnect ( 路由表 )</li>
+</ul>
+
+
+<p><del>Openvpn 由于特征过于明显已经不能使用。</del></p>
+
+<p>以上方案暂时能够满足各种Desktop环境的需求，但是在使用Terminal的时候，会发现以上方案并不好用。这时候就要祭出大杀器 <a href="https://github.com/rofl0r/proxychains-ng">ProxyChains-ng</a> 了。</p>
+
+<p>安装好 proxychains4 之后，建立默认配置，指向本地 shadowsocks 建立的socks5代理。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># /etc/proxychains.conf
+</span><span class='line'>strict_chain
+</span><span class='line'>
+</span><span class='line'>proxy_dns
+</span><span class='line'>
+</span><span class='line'>remote_dns_subnet 224
+</span><span class='line'>
+</span><span class='line'>tcp_read_time_out 15000
+</span><span class='line'>tcp_connect_time_out 8000
+</span><span class='line'>
+</span><span class='line'>[ProxyList]
+</span><span class='line'>socks5  127.0.0.1 1080 #define your local socks proxy here</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这时可以测试你的代理有没有生效了</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>➜  cnbeta git:(develop) proxychains4 git pull origin develop
+</span><span class='line'>[proxychains] config file found: /etc/proxychains.conf
+</span><span class='line'>[proxychains] preloading /usr/lib/libproxychains4.dylib
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] Strict chain  ...  127.0.0.1:1080  ...  github.com:22  ...  OK
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>From github.com:kyze8439690/cnbeta
+</span><span class='line'> * branch            develop    -&gt; FETCH_HEAD
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>[proxychains] DLL init: proxychains-ng 4.8.1-git-4-gea51cda
+</span><span class='line'>Already up-to-date.</span></code></pre></td></tr></table></div></figure>
+
+
+<p>如果看到一堆 [proxychains] 就说明代理成功了，以后想要运行的命令通过代理访问网络，就在运行的命令前增加 &ldquo;proxychains4 &#8220;前缀即可（注意空格）</p>
+
+<p>当然 proxychains4 可能太长，加个alias:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># ~/.zshrc
+</span><span class='line'>alias pc='proxychains4'</span></code></pre></td></tr></table></div></figure>
+
+
+<p>当然 <code>pc git pull</code> 还是太麻烦，而且会丢失补全的功能，如果你使用的是 Mac + iTerm 的组合的话，可以在 iTerm -> Preferences -> Profiles -> Keys 中，新建一个快捷键，例如 <code>⌥+↩︎</code> ，Action 选择 <code>Send Hex Code</code>，键值为 <code>0x1 0x70 0x63 0x20 0xd</code>，保存生效。</p>
+
+<p>这样的话，以后命令要代理就直接敲命令，然后 <code>⌥+↩︎</code> 即可，这样命令补全也能保留了。</p>
+
+<p>附上 Hex Code 对应表，获取工具为 <a href="http://manytricks.com/keycodes/">keycodes</a></p>
+
+<table>
+<thead>
+<tr>
+<th>Hex Code  </th>
+<th> Key       </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0x1       </td>
+<td> ⌃ + a     </td>
+</tr>
+<tr>
+<td>0x70      </td>
+<td>  p        </td>
+</tr>
+<tr>
+<td>0x63      </td>
+<td>  c        </td>
+</tr>
+<tr>
+<td>0x20      </td>
+<td>  [space]  </td>
+</tr>
+<tr>
+<td>0xd       </td>
+<td>  ↩︎       </td>
+</tr>
+</tbody>
+</table>
+
+
+<p><strong>Thanks to:</strong></p>
+
+<ul>
+<li><a href="http://everet.org">http://everet.org</a></li>
+<li><a href="http://weibo.com/210106468">Chenye</a></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Why Is ListView's HeaderView/FooterView setVisibility(View.GONE) Not Working?]]></title>
+    <link href="http://yanghui.name/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/"/>
+    <updated>2015-06-19T18:14:54+08:00</updated>
+    <id>http://yanghui.name/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working</id>
+    <content type="html"><![CDATA[<p>使用 <code>ListView</code> 的时候，根据需求需要动态将HeaderView/FooterView隐藏掉，这时你会发现 <code>setVisibility(View.GONE)</code> 根本没有效果，两个折衷的方案是:</p>
+
+<ul>
+<li>动态将HeaderView/FooterView remove掉，要显示的时候再add回去。</li>
+<li>在HeaderView/FooterView外面包一个Container ViewGroup(例如 <code>FrameLayout</code>)，再把这个Container作为HeaderView/FooterView add 到<code>ListView</code> 中。</li>
+</ul>
+
+
+<p>以上两个方案都能实现隐藏 HeaderView/FooterView 的效果。下面我从源码介绍以下为何 <code>View.GONE</code> 不生效，以及为何以上 workaround 能够生效的原因。</p>
+
+<!--more-->
+
+
+<p>总所周知，一个 <code>View</code> 能在屏幕上显示出来，需要经历 <strong>measure / layout / draw</strong> 三个步骤，measure 步骤负责测量View的大小，layout 步骤负责布局，draw 步骤负责绘制。一个 <code>View</code> 占屏幕多大位置，一般是由 measure 步骤决定。</p>
+
+<p>对于 <code>ListView</code> 来说，不论是 Header 还是 Footer 还是普通的 ItemView，对他来说，都是普通的子 View。Header/Footer 和 ItemView 的区别，在 <code>HeaderViewListAdapter</code> 中体现。</p>
+
+<p><code>ListView</code> HeaderView/FooterView 设置隐藏不生效，表现为仍然占据原有的位置空间。所以我们先从 <code>ListView</code> 的 <code>onMeasure()</code> 函数入手。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">protected</span> <span class="kt">void</span> <span class="nf">onMeasure</span><span class="o">(</span><span class="kt">int</span> <span class="n">widthMeasureSpec</span><span class="o">,</span> <span class="kt">int</span> <span class="n">heightMeasureSpec</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="c1">// Sets up mListPadding</span>
+</span><span class='line'>    <span class="kd">super</span><span class="o">.</span><span class="na">onMeasure</span><span class="o">(</span><span class="n">widthMeasureSpec</span><span class="o">,</span> <span class="n">heightMeasureSpec</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">//...</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">childWidth</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">childHeight</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">childState</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">mItemCount</span> <span class="o">=</span> <span class="n">mAdapter</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">?</span> <span class="mi">0</span> <span class="o">:</span> <span class="n">mAdapter</span><span class="o">.</span><span class="na">getCount</span><span class="o">();</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">mItemCount</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="o">(</span><span class="n">widthMode</span> <span class="o">==</span> <span class="n">MeasureSpec</span><span class="o">.</span><span class="na">UNSPECIFIED</span> <span class="o">||</span>
+</span><span class='line'>            <span class="n">heightMode</span> <span class="o">==</span> <span class="n">MeasureSpec</span><span class="o">.</span><span class="na">UNSPECIFIED</span><span class="o">))</span> <span class="o">{</span>
+</span><span class='line'>        <span class="kd">final</span> <span class="n">View</span> <span class="n">child</span> <span class="o">=</span> <span class="n">obtainView</span><span class="o">(</span><span class="mi">0</span><span class="o">,</span> <span class="n">mIsScrap</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>       <span class="c1">//测量 itemView</span>
+</span><span class='line'>        <span class="n">measureScrapChild</span><span class="o">(</span><span class="n">child</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="n">widthMeasureSpec</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">childWidth</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="na">getMeasuredWidth</span><span class="o">();</span>
+</span><span class='line'>        <span class="n">childHeight</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="na">getMeasuredHeight</span><span class="o">();</span>
+</span><span class='line'>        <span class="c1">//...</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">//...</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">heightMode</span> <span class="o">==</span> <span class="n">MeasureSpec</span><span class="o">.</span><span class="na">UNSPECIFIED</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">heightSize</span> <span class="o">=</span> <span class="n">mListPadding</span><span class="o">.</span><span class="na">top</span> <span class="o">+</span> <span class="n">mListPadding</span><span class="o">.</span><span class="na">bottom</span> <span class="o">+</span> <span class="n">childHeight</span> <span class="o">+</span>
+</span><span class='line'>                <span class="n">getVerticalFadingEdgeLength</span><span class="o">()</span> <span class="o">*</span> <span class="mi">2</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">heightMode</span> <span class="o">==</span> <span class="n">MeasureSpec</span><span class="o">.</span><span class="na">AT_MOST</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="c1">// TODO: after first layout we should maybe start at the first visible position, not 0</span>
+</span><span class='line'>        <span class="n">heightSize</span> <span class="o">=</span> <span class="n">measureHeightOfChildren</span><span class="o">(</span><span class="n">widthMeasureSpec</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="n">NO_POSITION</span><span class="o">,</span> <span class="n">heightSize</span><span class="o">,</span> <span class="o">-</span><span class="mi">1</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">//设置 ListView dimension</span>
+</span><span class='line'>    <span class="n">setMeasuredDimension</span><span class="o">(</span><span class="n">widthSize</span> <span class="o">,</span> <span class="n">heightSize</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">mWidthMeasureSpec</span> <span class="o">=</span> <span class="n">widthMeasureSpec</span><span class="o">;</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>从这里可以看出每一个 itemView 的测量，都是由 <code>measureScrapChild()</code> 这个函数完成的，所以我们再来看看这个函数的源码。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kt">void</span> <span class="nf">measureScrapChild</span><span class="o">(</span><span class="n">View</span> <span class="n">child</span><span class="o">,</span> <span class="kt">int</span> <span class="n">position</span><span class="o">,</span> <span class="kt">int</span> <span class="n">widthMeasureSpec</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">LayoutParams</span> <span class="n">p</span> <span class="o">=</span> <span class="o">(</span><span class="n">LayoutParams</span><span class="o">)</span> <span class="n">child</span><span class="o">.</span><span class="na">getLayoutParams</span><span class="o">();</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">p</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">p</span> <span class="o">=</span> <span class="o">(</span><span class="n">AbsListView</span><span class="o">.</span><span class="na">LayoutParams</span><span class="o">)</span> <span class="n">generateDefaultLayoutParams</span><span class="o">();</span>
+</span><span class='line'>        <span class="n">child</span><span class="o">.</span><span class="na">setLayoutParams</span><span class="o">(</span><span class="n">p</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="n">p</span><span class="o">.</span><span class="na">viewType</span> <span class="o">=</span> <span class="n">mAdapter</span><span class="o">.</span><span class="na">getItemViewType</span><span class="o">(</span><span class="n">position</span><span class="o">);</span>
+</span><span class='line'>    <span class="n">p</span><span class="o">.</span><span class="na">forceAdd</span> <span class="o">=</span> <span class="kc">true</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">childWidthSpec</span> <span class="o">=</span> <span class="n">ViewGroup</span><span class="o">.</span><span class="na">getChildMeasureSpec</span><span class="o">(</span><span class="n">widthMeasureSpec</span><span class="o">,</span>
+</span><span class='line'>            <span class="n">mListPadding</span><span class="o">.</span><span class="na">left</span> <span class="o">+</span> <span class="n">mListPadding</span><span class="o">.</span><span class="na">right</span><span class="o">,</span> <span class="n">p</span><span class="o">.</span><span class="na">width</span><span class="o">);</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">lpHeight</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="na">height</span><span class="o">;</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">childHeightSpec</span><span class="o">;</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">lpHeight</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">childHeightSpec</span> <span class="o">=</span> <span class="n">MeasureSpec</span><span class="o">.</span><span class="na">makeMeasureSpec</span><span class="o">(</span><span class="n">lpHeight</span><span class="o">,</span> <span class="n">MeasureSpec</span><span class="o">.</span><span class="na">EXACTLY</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">childHeightSpec</span> <span class="o">=</span> <span class="n">MeasureSpec</span><span class="o">.</span><span class="na">makeMeasureSpec</span><span class="o">(</span><span class="mi">0</span><span class="o">,</span> <span class="n">MeasureSpec</span><span class="o">.</span><span class="na">UNSPECIFIED</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="n">child</span><span class="o">.</span><span class="na">measure</span><span class="o">(</span><span class="n">childWidthSpec</span><span class="o">,</span> <span class="n">childHeightSpec</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>从这段源码可以看出，每个 itemView 的测量，要先判断 view 是否存在 <code>AbsListView.LayoutParams</code>，如果不存在则new一个新的。<code>generateDefaultLayoutParams()</code> 源码如下。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Override</span>
+</span><span class='line'><span class="kd">protected</span> <span class="n">ViewGroup</span><span class="o">.</span><span class="na">LayoutParams</span> <span class="nf">generateDefaultLayoutParams</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">return</span> <span class="k">new</span> <span class="n">AbsListView</span><span class="o">.</span><span class="na">LayoutParams</span><span class="o">(</span><span class="n">ViewGroup</span><span class="o">.</span><span class="na">LayoutParams</span><span class="o">.</span><span class="na">MATCH_PARENT</span><span class="o">,</span>
+</span><span class='line'>            <span class="n">ViewGroup</span><span class="o">.</span><span class="na">LayoutParams</span><span class="o">.</span><span class="na">WRAP_CONTENT</span><span class="o">,</span> <span class="mi">0</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>WRAP_CONTENT</code> 值为 -2，<code>MATCH_PARENT</code> 为 -1，所以默认情况下 itemView 的大小由他自身决定（<code>MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)</code>）。</p>
+
+<p>在以上的源码中可以总结出以下几点：</p>
+
+<ul>
+<li><p><code>ListView</code> 的源码中并没有针对 Visibility 做特殊处理，一般 <code>ViewGroup</code> 都会跳过 Visibility 为 <code>View.GONE</code> 的 childView, 让他们大小为0。所以设置 HeaderView/FooterView 为 <code>View.GONE</code> 是无效的。</p></li>
+<li><p><code>ListView</code> 中对 itemView 的测量取决于 <code>LayoutParams</code>，想通过设置 <code>LayoutParams</code> 来隐藏 <code>ListView</code> 的某一项是行不通的，因为 0，-1，-2都会变成 ItemView 自己来决定自己的大小。你可以这样做一个测试：给 HeaderView/FooterView 设置一个 height 为 1 的 <code>AbsListView.LayoutParams</code>，你会发现 HeaderView/FooterView终于能够自我收缩了！</p></li>
+</ul>
+
+
+<p>那为何给 HeaderView/FooterView 包一层 Container 就可以实现隐藏的效果呢？分析如下：</p>
+
+<ul>
+<li><p>默认结构是这样的： <strong>ListView -> HeaderView/FooterView(View.GONE)</strong><br/>
+由于 ListView 没有对 Visibility 做处理，所以 HeaderView/FooterView 会被当成 <code>View.VISIBLE</code> 一样去 measure，隐藏失败。</p></li>
+<li><p>Container Workaround 是这样的：<strong>ListView -> Container(WRAP_CONTENT) -> HeaderView/FooterView(View.GONE)</strong><br/>
+ListView还是让 ItemView 自己决定自己的大小，Container 是 <code>WRAP_CONTENT</code>，继续看下一层，HeaderView/FooterView 是 <code>View.GONE</code>，从而导致 Container measure 出来的 measureHeight 是 0，所以 HeaderView/FooterView 被隐藏。</p></li>
+</ul>
+
+
+<p>当然还有第三种 Workarround：就是覆盖 HeaderView/FooterView的 <code>getMeasuredHeight()</code> 函数，让它有选择地按照实际情况返回 0 或者 <code>super.getMeasuredHeight()</code>。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[View and ViewGroup's Measure Layout and Draw]]></title>
+    <link href="http://yanghui.name/blog/2015/05/19/view-and-viewgroups-measure-layout-and-draw/"/>
+    <updated>2015-05-19T16:35:34+08:00</updated>
+    <id>http://yanghui.name/blog/2015/05/19/view-and-viewgroups-measure-layout-and-draw</id>
+    <content type="html"><![CDATA[<ul>
+<li>Begin from ViewRoot&rsquo;s performTrasversals() -> performMeasure() -> performLayout() -> performDraw()</li>
+<li><p>Measure: pass measurespec to all children and ask them to measure themselves base on the measurespec value</p>
+
+<p>  <!--more--></p>
+
+<ul>
+<li>Measure is a traversal procedure, from parent to child.</li>
+<li>MeasureSpec is a integer conbination of a size and a mode:
+
+<ul>
+<li>size: size provided by parent to calculate measured size</li>
+<li>mode: limit provided by parent to calculate measured size, possible values as below:
+
+<ul>
+<li>AT_MOST: the measured size can not be larger than specified size.</li>
+<li>EXACTLY: the measured size must be equal to specified size.</li>
+<li>UNSPECIFIED: the child view can be whatever size it wants.</li>
+</ul>
+</li>
+<li>Why setting width/height to 0dp when child view in LinearLayout has weight?</li>
+<li>getMeasuredWidth/height will always return 0 until measure finish.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>Layout: Based on the result of measure, now we know the child views&rsquo;s approximate dimensions, the next procedure is decide the location of a view. Just like drawing a rect on a white paper, we must know the size of this rect, the distance between the rect&rsquo;s edge and the pager&rsquo;s edge, then we can draw it down. The layout procedure need four parameters:</p>
+
+<ul>
+<li>left</li>
+<li>top</li>
+<li>right</li>
+<li>bottom</li>
+</ul>
+
+
+<p> These four parameters indicate the distance between view edge and parent&rsquo;s left top point.</p>
+
+<p> In View&rsquo;s onLayout(), do nothing.</p>
+
+<p> In View&rsquo;s layout(), call setFrame(), then mLeft, mRight, mTop, mBottom is assigned value, then getWidth()/getHeigth() will not return 0 but the correct value. That is why we can not call getWidth()/getHeight() in activity&rsquo;s onCreate() method, but in view.getViewTreeObserver().addOnGlobalLayoutListener(), because only then the layout procedure is finished.</p>
+
+<p> In layout procedure, we can also decide the size of a view, by changing the left/top/right/bottom value, but generally, we don&rsquo;t do this.</p></li>
+<li><p>Draw: after measure and layout, the exactly visble area of the view is determined, now we will draw the view/viewgroup.</p>
+
+<p>  When drawing, don&rsquo;t determine drawing location base on canvas.getWidth()/getHeight(), the canvas size won&rsquo;t be equal to the view size, use view.getWidth()/getHeight() instead(On android 2.3, the canvas size will be equal to the screen size in some case).</p>
+
+<p>  In View&rsquo;s onDraw(), do nothing, you can define you own drawing mechanism here.</p>
+
+<p>  In View&rsquo;s draw(), draw background -> draw content(onDraw) -> draw children(dispatchDraw)</p>
+
+<p>  Draw children by calling dispatchDraw(), in View&rsquo;s dispatchDraw(), do nothing.</p>
+
+<p>  In ViewGroup&rsquo;s dispatchDraw(), use a for loop to call child&rsquo;s draw() method. If clipToPadding is set to true(by default is true), the canvas pass to child will be clip base on ViewGroup&#8217; size and scrolling position. That is why children can not draw outside its parent if not call setClipToPadding(false).</p>
+
+<p>  In View&rsquo;s source code, there is two draw() method, draw(Canvas) and draw(Canvas, ViewGroup, long), the second one is call by parent ViewGroup&rsquo;s dispatchDraw(), and in this method, handle with the canvas(clip, translate and so on) and call the draw(Canvas).</p></li>
+<li>measure() -> onMeasure()</li>
+<li>layout() -> onLayout()</li>
+<li>draw() -> onDraw()</li>
+<li>Do not override xxx(), override onXXX() instead.</li>
+<li>ViewGroup &rsquo;s onLayout is abstract.</li>
+<li>ViewGroup will not call onDraw until you call setWillNotDraw(false).</li>
+<li>measure/layout/draw spend time &lt; 16ms -> butter</li>
+<li>measure/layout/draw spend time > 16ms -> janky</li>
+<li>Improve performance:
+
+<ul>
+<li>measure: FrameLayout -> RelativeLayout -> LinearLayout</li>
+<li>layout: reduce the number of layout level.
+
+<ul>
+<li>ImageView + TextView -> TextView</li>
+<li>Multi LinearLayout -> RelativeLayout</li>
+<li>&hellip;</li>
+</ul>
+</li>
+<li>draw: in customView, try your best to reduce draw time(overdraw), clip canvas and just draw the necessary area.</li>
+<li>If necessary, you can try to draw content instead of using different view to make your UI(bypass measure layout, but will make coding harder).</li>
+</ul>
+</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[2015-1-31 阿里技术沙龙 - Android应用性能优化实践]]></title>
+    <link href="http://yanghui.name/blog/2015/02/01/2015-1-31-ali-technical-salon/"/>
+    <updated>2015-02-01T11:42:04+08:00</updated>
+    <id>http://yanghui.name/blog/2015/02/01/2015-1-31-ali-technical-salon</id>
+    <content type="html"><![CDATA[<p>周末跑去深圳参加了一场阿里主持的技术沙龙，主题是《如何构建高可用的APP》，沙龙中相关的ppt和视频可以在他们的<a href="http://weibo.com/taobaodeveloperclub">微博</a>中找到。沙龙中收获比较大的是有关UC的何杰分享的Android应用性能优化实践，和手Q web业务优化的解析。</p>
+
+<!--more-->
+
+
+<p>Android应用性能优化实践中，提及了比较多性能优化的干货。一般我们对于性能的调试多是依赖开发者工具，而uc对性能优化做了额外有趣而且有创意的事情。<br/>
+uc对应用有六个硬性的指标，分别是以下几点：</p>
+
+<ul>
+<li><strong>流量消耗</strong>（感谢zqjia大神指出）</li>
+<li><strong>性能</strong></li>
+<li><strong>稳定性</strong></li>
+<li><strong>内存占用</strong></li>
+<li><strong>电量消耗</strong></li>
+<li><strong>apk大小</strong></li>
+</ul>
+
+
+<p>应该是这六点，希望我没有记错。其中性能是一个比较重要而又比较难的难点。性能问题造成的因素很多，产品功能因素，代码原因，设备配置，设备运行软件数量，是否安装安全软件，rom适配，等等。有很多问题，在开发测试甚至灰度测试的时候难以发现，依赖用户反馈时，对问题描述量化等也比较难。<br/>
+uc在性能优化的思路是，先确保主路径的流畅，再追求整体的卡顿优化；线下分析结合线上监控查询定位性能问题；先解决卡，再解决顿。<br/>
+工具上，先是老生常谈的开发者工具，TraceView，Overdraw，Systrace，StrictMode，Hierarchy Viewer等是必定要用的调试工具。接着是关键点的打点统计，对启动时间，相应速度的监控（输出时间差）。接着就是用户反馈的分析，ANR（Application not response）日志分析，StrictMode下的ANR分析，以及我第一次了解到的Looper Hook调试方法。我个人认为的重点如下：</p>
+
+<ul>
+<li><strong>用户反馈分类</strong>：按照使用功能，发生频率，用户类型分类</li>
+<li><strong>StrictMode ANR</strong>：更加严格，会暴露更多可能的潜在问题</li>
+<li><strong>Looper Hook</strong>：在UI线程以外开启一条线程，定时向UI线程post一个runnable，并记下post时间。runnable的内容是将执行时间同步回发送线程，如果UI线程被阻塞，那么post过去的runnable不能被准时执行，那么同步回去的执行时间会与post时间有这较大的差值，设定几个阀值（1000ms或5000ms），用来评测不同情况下卡UI线程的情况，并可以通过log Message.what的值和Message.callback的类型来判断发生场景。对于这里，建议大家看下Looper，Message，Handler，MessageQueue的源码实现。</li>
+</ul>
+
+
+<p>而在优化的细节上，uc也总结了很多方案（200+）。有一些关键点有：</p>
+
+<ul>
+<li><strong>分段加载</strong></li>
+<li><strong>延迟加载</strong>：耗时操作延后执行，执行时机通过post runnable到UIThread触发，表明UIThread已经idle，可以尝试进行耗时操作</li>
+<li><strong>缓存复用</strong>：不只是数据，View也可以复用，在Activity rotate的时候，在View被destory前保存View实例，在Activity recreate之后将View重新add到layout中，只需要重新measure layout draw，省略new View的过程</li>
+<li>运行时<strong>线程管理</strong>防止抢占资源，造成UIThread运行卡顿</li>
+<li>引入<strong>异步dns</strong>及<strong>cache</strong>防止获取网络代理卡顿</li>
+<li>解决start第三方Activity外部crash导致app卡死：采用外壳Activity方案解决，即start第三方Activity时采用：<strong>Activity -> ShieldActivity -> Third party Activity</strong> 的调用方法。</li>
+<li>尝试开启<strong>GPU加速</strong>（难点，代价比较大）</li>
+<li>SharedPreference：<strong>commit()</strong>是UIThread线程执行，如果保存数据过大，可能卡UIThread，换用<strong>apply()</strong>。</li>
+<li>安全软件拦截：<strong>沟通反馈</strong></li>
+</ul>
+
+
+<p>在举出案例之后，也给出了一些总结：</p>
+
+<ul>
+<li><strong>培养异步化的思维，不只是开发，产品也需要多考虑这一方面</strong></li>
+<li><strong>不要尝试假定用户可能的使用场景在一个小的范围内，实际情况可能很极限（举了一个用户下载列表8k多条目的例子）</strong></li>
+<li><strong>预加载 + 闲时加载 + 按需加载</strong></li>
+<li><strong>线程限制管理（控制并发） + 任务队列</strong></li>
+<li><strong>压力测试</strong></li>
+<li><strong>防御式编程</strong>（<a href="http://zh.wikipedia.org/wiki/%E9%98%B2%E5%BE%A1%E6%80%A7%E7%BC%96%E7%A8%8B">Wiki</a>）</li>
+<li><strong>禁止UIThread做如下操作：文件IO读写，耗CPU操作，IPC同步</strong></li>
+</ul>
+
+
+<p>洋洋洒洒居然写了这么多，由此可以看出这个分享的干货之多。真心十分感谢阿里的这次技术分享，真心学到东西了。沙龙的ppt和视频应该近期在他们的微博就会放出，大家可以关注一下。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Android Developer Tools（开发人员工具）]]></title>
+    <link href="http://yanghui.name/blog/2015/01/20/android-developer-tools/"/>
+    <updated>2015-01-20T15:01:18+08:00</updated>
+    <id>http://yanghui.name/blog/2015/01/20/android-developer-tools</id>
+    <content type="html"><![CDATA[<p>在做Android开发的过程中，不可避免地需要使用到自带的android developer tools（开发人员工具），这是一个强大的开发辅助工具，随着android版本的更新，developer tools也集成了越来越多十分方便的调试功能，这里以android 4.4.4版本为例子，说说其中一部分我常用工具的使用（恕我才疏学浅没能全部懂用）。</p>
+
+<!--more-->
+
+
+<h3><strong>显示布局边界</strong></h3>
+
+<p>这个工具用于显示普通view布局的size，margin等属性，实际使用场景为：查看view的实际位置，检查界面是由普通view拼装而成或用surfaceView（WebView）实现。<br/>
+<img src="http://yanghui.name/images/show_border.jpg" width="400" height="640" title="显示布局边界" ></p>
+
+<h3><strong>强制使用从右到左的布局</strong></h3>
+
+<p>也就是RTL布局（Right-to-Left），由于一些国家地区的语言习惯，书写阅读是从右到左（类似中国古代的书写习惯）。有些开发者可能很奇怪，在2.3或以上的android版本，padding，margin，gravity等，是left，right，top，bottom组合，到了3.0或以后，就多了个<strong>start</strong>和<strong>end</strong>，这个也是为了RTL布局而添加的。一般开发者都会无视这个选项，沿用常见的左右布局，但是如果你做的是国际化应用的话，就需要考虑RTL布局了。而这个开发者选项，就是让开发者可以在<strong>不切换语言区域的情况下，调试RTL布局</strong>。<br/>
+<img src="http://yanghui.name/images/show_rtl.jpg" width="400" height="640" title="强制使用从右到左的布局" ></p>
+
+<h3><strong>显示GPU视图更新</strong></h3>
+
+<p>随着android版本的更新，越来越多的绘制操作能使用GPU来完成，详见<a href="http://developer.android.com/guide/topics/graphics/hardware-accel.html">http://developer.android.com/guide/topics/graphics/hardware-accel.html</a>，而这个工具打开之后，使用GPU绘制的区域会用红色来标注，而没有红色标注的区域，则是使用CPU绘制的。这个选项也可以用来查看redraw的区域大小。<br/>
+<img src="http://yanghui.name/images/show_gpu_redraw.jpg" width="400" height="640" title="显示GPU视图更新" ></p>
+
+<h3><strong>调试GPU过度绘制</strong></h3>
+
+<p>这个就是经典了Overdraw问题(过度绘制)了。我们知道，动画是通过一帧一帧不断重绘，连续播放实现的。而在绘制完成的时候，每一个像素点可能已经<strong>不可避免地</strong>被绘制了一次以上，由于每个像素点最终显示出来的只有一种颜色（假设透明度100%），所以先前绘制的操作都是无用的，这就是overdraw了。Overdraw会造成什么问题呢？为了达到60FPS的绘制速率，每一次绘制，都需要在16ms内完成（1000ms / 60），如果绘制的时间过长，就会导致绘制占用的时间过长，用户在使用时就会有卡顿的感觉。需要注意的一点是：<strong>Overdraw是无法避免的，我们只能尽量通过优化减少他。</strong>打开调试GPU过度绘制选项（显示过度绘制区域），屏幕会显示一些从浅绿到深红的色块，这些色块指示出了overdraw的程度，颜色越往深红靠，说明overdraw越严重。由于overdraw无法避免，要整个界面都显示白色几乎不可能，我们只能尽量让红色的区域减少。如果你发现你的app几乎整个都是深红色的，那说明你需要好好优化一下布局了。<br/>
+<img src="http://yanghui.name/images/show_overdraw.jpg" width="400" height="640" title="调试GPU过度绘制" ></p>
+
+<h3><strong>GPU呈现模式分析</strong></h3>
+
+<p>这个选项用于显示绘制速率。打开时屏幕下部会显示绘制速率条形图和一条横线。该横线表示在它以下的绘制时间少于16ms，绘制是流畅的。如果条形超出了横线，说明当前发生了绘制的卡滞，需要根据当前操作优化程序，提供一致的流畅体验。<br/>
+<img src="http://yanghui.name/images/show_fps.jpg" width="400" height="640" title="GPU呈现模式分析" ></p>
+
+<h3><strong>不保留活动</strong></h3>
+
+<p>这个选项用于调试activity被销毁的情况。当系统可用内存不足，新程序要求分配内存的时候，除了gc以外，系统可能会把后台的activity destroy掉以回收内存，为了能恢复被destory activity的状态，系统在destory时会调用<a href="http://developer.android.com/reference/android/app/Activity.html#onSaveInstanceState(android.os.Bundle)">onSaveInstanceState(Bundle)</a>方法，将activity状态保存在bundle中；在activity重启的onCreate(Bundle)方法中，将保存的状态恢复。<br/>
+需要注意的是saveInstance是一个遍历操作，从高层到底层，换句话说，从activity到fragment，fragment到viewgroup，viewgroup到view，一层一层地调用saveInstance方法。反之，恢复的时候也是这样。Fragment/ViewGroup/View的状态保存需要一个条件：必须拥有id或者tag。这是保存状态时使用的标识。而什么状态需要保存呢？聚个栗子🌰，activity/view/viewGroup/fragment中的自定义变量，没有用持久化保存（sqlite，sharedPreference等）的数据，都需要用bundle保存起来。</p>
+
+<p>回到主题，不保留活动选项，正是用来调试这个情况的。由于你无法预知系统什么时候会回收activity释放内存空间，我们需要手动触发他。打开这个选项之后，每一个不是visible的activity，都会直接被调用onSavedInstance并destory掉。所以，你只需要打开不保留活动，打开你要测试的activity，按home键回到桌面，再返回这个activity并观察现象尽可。如果状态恢复有问题，这时候应该会发生一个NPE（NullPointerException），或者视图上的数据显示有问题。这时再根据情况修改代码即可。</p>
+
+<p>最后附上cyrilmottier大大有关android状态恢复的<a href="http://yanghui.name/attachments/deepdiveintoandroidrestorationbycyrilmottier-140924114735-phpapp02.pdf">ppt</a>，网络情况的好的直接看<a href="http://www.slideshare.net/parisandroidug/deep-dive-into-android-restoration-droidcon-paris-2014">原链接</a>。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[(译)在ViewGroup中处理Touch Events]]></title>
+    <link href="http://yanghui.name/blog/2013/10/17/managing-touch-events-in-a-viewgroup/"/>
+    <updated>2013-10-17T00:18:00+08:00</updated>
+    <id>http://yanghui.name/blog/2013/10/17/managing-touch-events-in-a-viewgroup</id>
+    <content type="html"><![CDATA[<p>在一个<a href="http://developer.android.com/reference/android/view/ViewGroup.html"><code>ViewGroup</code></a>中处理touch events需要格外注意。因为在<a href="http://developer.android.com/reference/android/view/ViewGroup.html"><code>ViewGroup</code></a>里面有着各种要处理不同touch events的子view，这是很常见的。为了确保每个view能正确地获取到属于他的touch events，我们必须覆盖<a href="http://developer.android.com/reference/android/view/ViewGroup.html#onInterceptTouchEvent(android.view.MotionEvent)"><code>onInterceptTouchEvent()</code></a>函数。</p>
+
+<!--more-->
+
+
+<hr />
+
+<h4>ViewGroup中的Touch Events</h4>
+
+<p>当在一个<a href="http://developer.android.com/reference/android/view/ViewGroup.html"><code>ViewGroup</code></a>表面，或者里面的子view表面检测到一个touch event的时候，会调用<a href="http://developer.android.com/reference/android/view/ViewGroup.html"><code>ViewGroup</code></a>的<a href="http://developer.android.com/reference/android/view/ViewGroup.html#onInterceptTouchEvent(android.view.MotionEvent)"><code>onInterceptTouchEvent()</code></a>函数。如果<a href="http://developer.android.com/reference/android/view/ViewGroup.html#onInterceptTouchEvent(android.view.MotionEvent)"><code>onInterceptTouchEvent()</code></a>函数返回true时，这个MotionEvent将会被截断，也就意味着，不会传递给子view，而是交给父层(<a href="http://developer.android.com/reference/android/view/ViewGroup.html"><code>ViewGroup</code></a>)的<a href="http://developer.android.com/reference/android/view/View.html#onTouchEvent(android.view.MotionEvent)"><code>onTouchEvent</code></a>函数处理。</p>
+
+<p><a href="http://developer.android.com/reference/android/view/ViewGroup.html#onInterceptTouchEvent(android.view.MotionEvent)"><code>onInterceptTouchEvent()</code></a>方法提供了一个让父层在所以子view之前先获取到touch event的途径。如果你在<a href="http://developer.android.com/reference/android/view/ViewGroup.html#onInterceptTouchEvent(android.view.MotionEvent)"><code>onInterceptTouchEvent()</code></a>中返回了true的话，先前获取到touch events的子view会接收到一个<a href="http://developer.android.com/reference/android/view/MotionEvent.html#ACTION_CANCEL"><code>ACTION_CANCEL</code></a>，而先前的events会传到父层的<a href="http://developer.android.com/reference/android/view/View.html#onTouchEvent(android.view.MotionEvent)"><code>onTouchEvent</code></a>做处理。<a href="http://developer.android.com/reference/android/view/ViewGroup.html#onInterceptTouchEvent(android.view.MotionEvent)"><code>onInterceptTouchEvent()</code></a>也能直接返回false去简单地观察touch events按view hierarchy传递给他们原先的目标（子view），用子view的<a href="http://developer.android.com/reference/android/view/View.html#onTouchEvent(android.view.MotionEvent)"><code>onTouchEvent</code></a>去处理这些events。</p>
+
+<!-- more -->
+
+
+<p>在下面这些代码段中，MyViewGroup继承于<a href="http://developer.android.com/reference/android/view/ViewGroup.html"><code>ViewGroup</code></a>，并包含了多个子view。如果你在子view上横向拖动，子view不再会获取到touch events，而MyViewGroup会处理这些touch events来滚动他的内容。但是，如果你按下子view中的button，或者纵向滚动子view，父层不会截获这些touch events，因为子view才是传递的目标。在这种情况中，<a href="http://developer.android.com/reference/android/view/ViewGroup.html#onInterceptTouchEvent(android.view.MotionEvent)"><code>onInterceptTouchEvent()</code></a>应该返回false，这样MyViewGroup的<a href="http://developer.android.com/reference/android/view/View.html#onTouchEvent(android.view.MotionEvent)"><code>onTouchEvent</code></a>才不会被调用。</p>
+
+<pre><code>public class MyViewGroup extends ViewGroup {
+
+    private int mTouchSlop;
+
+    ...
+
+    ViewConfiguration vc = ViewConfiguration.get(view.getContext());
+    mTouchSlop = vc.getScaledTouchSlop();
+
+    ...
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        /*
+         * 这个方法只是决定我们是否要截获这个手势.
+         * 如果我们返回true，那么onTouchEvent 就会被调用，然后我们就开始进行滚动的操作
+         */
+
+
+        final int action = MotionEventCompat.getActionMasked(ev);
+
+        // 先处理触摸手势完成的情况
+        if (action == MotionEvent.ACTION_CANCEL || action == MotionEvent.ACTION_UP) {
+            // 释放滚动.
+            mIsScrolling = false;
+            return false; // 不会截获touch event，让子view处理他
+        }
+
+        switch (action) {
+            case MotionEvent.ACTION_MOVE: {
+                if (mIsScrolling) {
+                    // 处于正在滚动的状态，因此要截获touch event！
+                    return true;
+                }
+
+                // 如果用户手指横向移动量超过了阀值，则开始滚动
+
+                // 作为读者的练习:)
+                final int xDiff = calculateDistanceX(ev); 
+
+                // 触摸阀值应该用ViewConfiguration常量来计算
+                if (xDiff &gt; mTouchSlop) { 
+                    // 开始滚动!
+                    mIsScrolling = true;
+                    return true;
+                }
+                break;
+            }
+            ...
+        }
+
+        // 通常情况下，我们不会想要截获touch event，它们应该让子view来处理
+        return false;
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent ev) {
+        // 这里我们开始处理touch event (e.g. 如果action是ACTION_MOVE,滚动container）。
+        // 这个方法只有在touch event在onInterceptTouchEvent中被截获时调用
+        ...
+    }
+}
+</code></pre>
+
+<p>需要注意的是<a href="http://developer.android.com/reference/android/view/ViewGroup.html"><code>ViewGroup</code></a>也提供了一个<a href="http://developer.android.com/reference/android/view/ViewGroup.html#requestDisallowInterceptTouchEvent(boolean)"><code>requestDisallowInterceptTouchEvent()</code></a>函数。ViewGroup可以通过调用这个函数，让子view阻止所有父层利用<a href="http://developer.android.com/reference/android/view/ViewGroup.html#onInterceptTouchEvent(android.view.MotionEvent)"><code>onInterceptTouchEvent()</code></a>来截取touch event。</p>
+
+<hr />
+
+<h4>使用ViewConfiguration常量</h4>
+
+<p>上面的代码中使用了<a href="http://developer.android.com/reference/android/view/ViewConfiguration.html"><code>ViewConfiguration</code></a>去初始化一个叫mTouchSlop的变量。你可以使用<a href="http://developer.android.com/reference/android/view/ViewConfiguration.html"><code>ViewConfiguration</code></a>类去获取Android系统内置的距离，速度，次数等。</p>
+
+<p>&ldquo;Touch slop&rdquo; 可以解释为一个用户手势被判断为滑动的距离。Touch slop通常用来防止用户的其他触摸行为（如触摸屏幕上的元素）被判断为滑动。</p>
+
+<p>另外两个最常使用的<a href="http://developer.android.com/reference/android/view/ViewConfiguration.html"><code>ViewConfiguration</code></a>方法是<a href="http://developer.android.com/reference/android/view/ViewConfiguration.html#getScaledMinimumFlingVelocity()"><code>getScaledMinimumFlingVelocity()</code></a>和<a href="http://developer.android.com/reference/android/view/ViewConfiguration.html#getScaledMaximumFlingVelocity()"><code>getScaledMaximumFlingVelocity()</code></a>。这两个方法会返回初始化滑动的最大速度值和最小速度值，以像素/秒为单位。例如：</p>
+
+<pre><code>ViewConfiguration vc = ViewConfiguration.get(view.getContext());
+private int mSlop = vc.getScaledTouchSlop();
+private int mMinFlingVelocity = vc.getScaledMinimumFlingVelocity();
+private int mMaxFlingVelocity = vc.getScaledMaximumFlingVelocity();
+
+...
+
+case MotionEvent.ACTION_MOVE: {
+    ...
+    float deltaX = motionEvent.getRawX() - mDownX;
+    if (Math.abs(deltaX) &gt; mSlop) {
+        // 发生了滑动
+    }
+
+...
+
+case MotionEvent.ACTION_UP: {
+    ...
+    } if (mMinFlingVelocity &lt;= velocityX &amp;&amp; velocityX &lt;= mMaxFlingVelocity
+            &amp;&amp; velocityY &lt; velocityX) {
+        // 条件被满足
+    }
+}
+</code></pre>
+
+<hr />
+
+<h4>扩展一个子view的点击热区</h4>
+
+<p>Android提供了一个<a href="http://developer.android.com/reference/android/view/TouchDelegate.html"><code>TouchDelegate</code></a>类去让父类扩展它的子view的触摸区域。当子view很小但需要大的触摸区域的时候，这个类大有用处。如果你想要的话，你也能用这个类去缩小子view的触摸区域。</p>
+
+<p>在下面的例子中，有一个作为例子的<a href="http://developer.android.com/reference/android/widget/ImageButton.html"><code>ImageButton</code></a>(也就是说父类会扩展这个子view的触摸区域)</p>
+
+<pre><code>&lt;RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+     android:id="@+id/parent_layout"
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
+     tools:context=".MainActivity" &gt;
+
+     &lt;ImageButton android:id="@+id/button"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:background="@null"
+          android:src="@drawable/icon" /&gt;
+&lt;/RelativeLayout&gt;
+</code></pre>
+
+<p>下面的代码段会完成下面的事情：</p>
+
+<ul>
+<li>获取父view并post一个<a href="http://developer.android.com/reference/java/lang/Runnable.html" title="Runnable"><code>Runnable</code></a>到UI线程。这会确保父类在调用<a href="http://developer.android.com/reference/android/view/View.html#getHitRect(android.graphics.Rect"><code>getHitRect()</code></a>)方法前先勾画出他的子类。<a href="http://developer.android.com/reference/android/view/View.html#getHitRect(android.graphics.Rect"><code>getHitRect()</code></a>)方法的作用是在父类的坐标系中获取子view的hit rectangle（触摸区域）。</li>
+<li>找到<a href="http://developer.android.com/reference/android/widget/ImageButton.html"><code>ImageButton</code></a>子view并调用<a href="http://developer.android.com/reference/android/view/View.html#getHitRect(android.graphics.Rect"><code>getHitRect()</code></a>)去获取子类触摸区域范围。</li>
+<li>扩展<a href="http://developer.android.com/reference/android/widget/ImageButton.html"><code>ImageButton</code></a>的hit rectangle范围。</li>
+<li>初始化<a href="http://developer.android.com/reference/android/view/TouchDelegate.html"><code>TouchDelegate</code></a>对象，参数是扩展后的hit rectangle和<a href="http://developer.android.com/reference/android/widget/ImageButton.html"><code>ImageButton</code></a>子view。</li>
+<li>在父view中设置<a href="http://developer.android.com/reference/android/view/TouchDelegate.html"><code>TouchDelegate</code></a>，这样在这个触摸范围内的touch event都会传给<a href="http://developer.android.com/reference/android/widget/ImageButton.html"><code>ImageButton</code></a></li>
+</ul>
+
+
+<p>在<a href="http://developer.android.com/reference/android/widget/ImageButton.html"><code>ImageButton</code></a>子view的触摸范围容量内，父view会接收所有的touch events，如果touch event发生在子类的hit rectangle内，父类会将touch event传给子类做处理。</p>
+
+<pre><code>public class MainActivity extends Activity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        // 获取父view
+        View parentView = findViewById(R.id.parent_layout);
+
+        parentView.post(new Runnable() {
+            // post到父类的消息队列中，确保在调用getHitRect()前勾画出子类
+            @Override
+            public void run() {
+                // 实例view的区域范围（ImageButton）
+                Rect delegateArea = new Rect();
+                ImageButton myButton = (ImageButton) findViewById(R.id.button);
+                myButton.setEnabled(true);
+                myButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Toast.makeText(MainActivity.this, 
+                                "Touch occurred within ImageButton touch region.", 
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+                // ImageButton的hit rectangle
+                myButton.getHitRect(delegateArea);
+
+                // 在ImageButton边框的右边和底边扩展触摸区域
+                delegateArea.right += 100;
+                delegateArea.bottom += 100;
+
+                // 初始化TouchDelegate.
+                // "delegateArea" is the bounds in local coordinates of 
+                // the containing view to be mapped to the delegate view.
+                // "myButton" is the child view that should receive motion
+                // events.
+                TouchDelegate touchDelegate = new TouchDelegate(delegateArea, 
+                        myButton);
+
+                // Sets the TouchDelegate on the parent view, such that touches 
+                // within the touch delegate bounds are routed to the child.
+                if (View.class.isInstance(myButton.getParent())) {
+                    ((View) myButton.getParent()).setTouchDelegate(touchDelegate);
+                }
+            }
+        });
+    }
+}
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[修复android 2.3 不能以RGBA8888格式解析图片的问题]]></title>
+    <link href="http://yanghui.name/blog/2013/09/03/fix-android-2-dot-3-can-not-decode-bitmap-in-rgba8888/"/>
+    <updated>2013-09-03T22:58:00+08:00</updated>
+    <id>http://yanghui.name/blog/2013/09/03/fix-android-2-dot-3-can-not-decode-bitmap-in-rgba8888</id>
+    <content type="html"><![CDATA[<p>在android 2.3,解析bitmap的时候，不能用RGBA8888格式解析图片成bitmap，只能解析成RGB565,就算加了Config也一样。
+在android google code project上的解释是这样的：<a href="https://code.google.com/p/android/issues/detail?id=13038">https://code.google.com/p/android/issues/detail?id=13038</a> <br/>
+大致意思就是，原本记录了这个issue，然后被脚本自动标记为close了，导致这个bug没有修复。好吧，看来只能自己解决这个问题了。
+在网上搜了一番，偶然发现一个曲线救国的方法。</p>
+
+<div><script src='https://gist.github.com/7408999.js?file=convertBitmap.java'></script>
+<noscript><pre><code>public static Bitmap convert(Bitmap bitmap, Bitmap.Config config) {
+    Bitmap convertedBitmap = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), config);
+    Canvas canvas = new Canvas(convertedBitmap);
+    Paint paint = new Paint();
+    paint.setColor(Color.BLACK);
+    canvas.drawBitmap(bitmap, 0, 0, paint);
+    return convertedBitmap;
+}</code></pre></noscript></div>
+
+
+<p>这个函数是最近在研究zxing解析本地图片时候发现的，突然发现这个函数貌似能用与解决不能解析为RGBA8888的bug，在测试之后，果然生效了。使用方法如下：</p>
+
+<pre><code>Bitmap bitmap = convert(bitmap, Bitmap.Config.ARGB_8888);
+</code></pre>
+
+<p>这个函数用的也是很曲线救国的方法了，用canvas将原来的bitmap画到属性为RGBA8888的空bitmap上，成功绕过了android 2.3不能直接解析为RGBA8888的bug。<br/>
+（吐槽：做android开发越久越觉得android坑啊……）</p>
+]]></content>
+  </entry>
+  
+</feed>

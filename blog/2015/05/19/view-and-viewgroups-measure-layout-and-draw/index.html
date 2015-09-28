@@ -1,0 +1,440 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>View and ViewGroup&#8217;s Measure Layout and Draw - 杨辉的个人博客</title>
+  <meta name="author" content="杨辉">
+
+  
+  <meta name="description" content="Begin from ViewRoot&rsquo;s performTrasversals() -> performMeasure() -> performLayout() -> performDraw()
+Measure: pass measurespec to all children &hellip;&#8221;>
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yanghui.name/blog/2015/05/19/view-and-viewgroups-measure-layout-and-draw">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="杨辉的个人博客" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href='https://fonts.googleapis.com/css?family=Noto+Serif:400,700' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-46433471-3']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">杨辉的个人博客</a></h1>
+  
+    <h2>记录编程新的体会.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  
+  
+</ul>
+
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">View and ViewGroup&#8217;s Measure Layout and Draw</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-05-19T16:35:34+08:00" pubdate data-updated="true">May 19th, 2015</time>
+        
+           | <a href="#disqus_thread"
+             data-disqus-identifier="http://yanghui.name">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><ul>
+<li>Begin from ViewRoot&rsquo;s performTrasversals() -> performMeasure() -> performLayout() -> performDraw()</li>
+<li><p>Measure: pass measurespec to all children and ask them to measure themselves base on the measurespec value</p>
+
+<p>  <!--more--></p>
+
+<ul>
+<li>Measure is a traversal procedure, from parent to child.</li>
+<li>MeasureSpec is a integer conbination of a size and a mode:
+
+<ul>
+<li>size: size provided by parent to calculate measured size</li>
+<li>mode: limit provided by parent to calculate measured size, possible values as below:
+
+<ul>
+<li>AT_MOST: the measured size can not be larger than specified size.</li>
+<li>EXACTLY: the measured size must be equal to specified size.</li>
+<li>UNSPECIFIED: the child view can be whatever size it wants.</li>
+</ul>
+</li>
+<li>Why setting width/height to 0dp when child view in LinearLayout has weight?</li>
+<li>getMeasuredWidth/height will always return 0 until measure finish.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>Layout: Based on the result of measure, now we know the child views&rsquo;s approximate dimensions, the next procedure is decide the location of a view. Just like drawing a rect on a white paper, we must know the size of this rect, the distance between the rect&rsquo;s edge and the pager&rsquo;s edge, then we can draw it down. The layout procedure need four parameters:</p>
+
+<ul>
+<li>left</li>
+<li>top</li>
+<li>right</li>
+<li>bottom</li>
+</ul>
+
+
+<p> These four parameters indicate the distance between view edge and parent&rsquo;s left top point.</p>
+
+<p> In View&rsquo;s onLayout(), do nothing.</p>
+
+<p> In View&rsquo;s layout(), call setFrame(), then mLeft, mRight, mTop, mBottom is assigned value, then getWidth()/getHeigth() will not return 0 but the correct value. That is why we can not call getWidth()/getHeight() in activity&rsquo;s onCreate() method, but in view.getViewTreeObserver().addOnGlobalLayoutListener(), because only then the layout procedure is finished.</p>
+
+<p> In layout procedure, we can also decide the size of a view, by changing the left/top/right/bottom value, but generally, we don&rsquo;t do this.</p></li>
+<li><p>Draw: after measure and layout, the exactly visble area of the view is determined, now we will draw the view/viewgroup.</p>
+
+<p>  When drawing, don&rsquo;t determine drawing location base on canvas.getWidth()/getHeight(), the canvas size won&rsquo;t be equal to the view size, use view.getWidth()/getHeight() instead(On android 2.3, the canvas size will be equal to the screen size in some case).</p>
+
+<p>  In View&rsquo;s onDraw(), do nothing, you can define you own drawing mechanism here.</p>
+
+<p>  In View&rsquo;s draw(), draw background -> draw content(onDraw) -> draw children(dispatchDraw)</p>
+
+<p>  Draw children by calling dispatchDraw(), in View&rsquo;s dispatchDraw(), do nothing.</p>
+
+<p>  In ViewGroup&rsquo;s dispatchDraw(), use a for loop to call child&rsquo;s draw() method. If clipToPadding is set to true(by default is true), the canvas pass to child will be clip base on ViewGroup&#8217; size and scrolling position. That is why children can not draw outside its parent if not call setClipToPadding(false).</p>
+
+<p>  In View&rsquo;s source code, there is two draw() method, draw(Canvas) and draw(Canvas, ViewGroup, long), the second one is call by parent ViewGroup&rsquo;s dispatchDraw(), and in this method, handle with the canvas(clip, translate and so on) and call the draw(Canvas).</p></li>
+<li>measure() -> onMeasure()</li>
+<li>layout() -> onLayout()</li>
+<li>draw() -> onDraw()</li>
+<li>Do not override xxx(), override onXXX() instead.</li>
+<li>ViewGroup &rsquo;s onLayout is abstract.</li>
+<li>ViewGroup will not call onDraw until you call setWillNotDraw(false).</li>
+<li>measure/layout/draw spend time &lt; 16ms -> butter</li>
+<li>measure/layout/draw spend time > 16ms -> janky</li>
+<li>Improve performance:
+
+<ul>
+<li>measure: FrameLayout -> RelativeLayout -> LinearLayout</li>
+<li>layout: reduce the number of layout level.
+
+<ul>
+<li>ImageView + TextView -> TextView</li>
+<li>Multi LinearLayout -> RelativeLayout</li>
+<li>&hellip;</li>
+</ul>
+</li>
+<li>draw: in customView, try your best to reduce draw time(overdraw), clip canvas and just draw the necessary area.</li>
+<li>If necessary, you can try to draw content instead of using different view to make your UI(bypass measure layout, but will make coding harder).</li>
+</ul>
+</li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">杨辉</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-05-19T16:35:34+08:00" pubdate data-updated="true">May 19th, 2015</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/android/'>android</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yanghui.name/blog/2015/05/19/view-and-viewgroups-measure-layout-and-draw/" data-via="yugy1991" data-counturl="http://yanghui.name/blog/2015/05/19/view-and-viewgroups-measure-layout-and-draw/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/02/01/2015-1-31-ali-technical-salon/" title="Previous Post: 2015-1-31 阿里技术沙龙 - Android应用性能优化实践">&laquo; 2015-1-31 阿里技术沙龙 - Android应用性能优化实践</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/" title="Next Post: Why is ListView's HeaderView/FooterView setVisibility(View.GONE) not working?">Why is ListView&#8217;s HeaderView/FooterView setVisibility(View.GONE) not working? &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+  <aside class="sidebar">
+   
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yanghui.name" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/09/28/fragment-recreate-2/">Fragment Recreate(2)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/27/fragment-recreate-1/">Fragment Recreate(1)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/31/tools-namespace-and-support-library-annotations/">Tools 命名空间的使用与 Support Library Annotations 介绍</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/19/make-all-command-through-proxy/">Terminal 代理方案</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/">Why Is ListView&#8217;s HeaderView/FooterView setVisibility(View.GONE) Not Working?</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating&#8230;</li>
+  </ul>
+  
+  <a href="https://github.com/kyze8439690">@kyze8439690</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'kyze8439690',
+            count: 11,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+<section>
+	<h1>Friendly Link</h1>
+	<ul id="recent_posts">
+      <li class="post">
+        <a href="http://daimajia.com/">http://daimajia.com/</a>
+      </li>
+  </ul>
+</section>
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/105933083684642036089?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+<section>
+  <link href="https://coderbits.com/content/widget/coderbits.css" media="all" rel="stylesheet" type="text/css">
+  <style type="text/css">
+    #coderbits {
+      margin: 10px 0 0 0;
+    }
+  </style>
+  <h1>Coderbits Portfolio</h1>
+  <section id="coderbits" data-coderbits-username="kyze8439690"></section>
+  <script src="https://coderbits.com/content/widget/coderbits.js"></script>
+</section>
+
+<section>
+  <h1>About Me</h1>
+  <p>A little something about me.</p>
+</section>
+
+  
+</aside>
+
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - 杨辉 -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'kyze8439690';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://yanghui.name/blog/2015/05/19/view-and-viewgroups-measure-layout-and-draw/';
+        var disqus_url = 'http://yanghui.name/blog/2015/05/19/view-and-viewgroups-measure-layout-and-draw/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+<script>
+  $(document).ready(function() {  
+    var stickyNavTop = $('nav').offset().top;  
+      
+    var stickyNav = function(){  
+      var scrollTop = $(window).scrollTop(); 
+      var navHasClassSticky = $('nav').hasClass('sticky');
+
+      if (scrollTop > stickyNavTop && navHasClassSticky) {   
+        return true;
+      } else if (scrollTop > stickyNavTop) {
+        $('nav').hide();
+        $('nav').addClass('sticky');
+        $('nav').fadeIn('2000');
+      } else {  
+        $('nav').removeClass('sticky');   
+      }  
+    };  
+      
+    stickyNav();  
+      
+    $(window).scroll(function() {  
+      stickyNav();  
+    });  
+  });  
+</script>
+
+
+</body>
+</html>

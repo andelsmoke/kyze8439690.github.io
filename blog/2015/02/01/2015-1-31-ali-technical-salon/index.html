@@ -1,0 +1,415 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>2015-1-31 阿里技术沙龙 - Android应用性能优化实践 - 杨辉的个人博客</title>
+  <meta name="author" content="杨辉">
+
+  
+  <meta name="description" content="周末跑去深圳参加了一场阿里主持的技术沙龙，主题是《如何构建高可用的APP》，沙龙中相关的ppt和视频可以在他们的微博中找到。沙龙中收获比较大的是有关UC的何杰分享的Android应用性能优化实践，和手Q web业务优化的解析。 Android应用性能优化实践中，提及了比较多性能优化的干货。 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yanghui.name/blog/2015/02/01/2015-1-31-ali-technical-salon">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="杨辉的个人博客" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href='https://fonts.googleapis.com/css?family=Noto+Serif:400,700' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-46433471-3']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">杨辉的个人博客</a></h1>
+  
+    <h2>记录编程新的体会.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  
+  
+</ul>
+
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">2015-1-31 阿里技术沙龙 - Android应用性能优化实践</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-02-01T11:42:04+08:00" pubdate data-updated="true">Feb 1st, 2015</time>
+        
+           | <a href="#disqus_thread"
+             data-disqus-identifier="http://yanghui.name">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>周末跑去深圳参加了一场阿里主持的技术沙龙，主题是《如何构建高可用的APP》，沙龙中相关的ppt和视频可以在他们的<a href="http://weibo.com/taobaodeveloperclub">微博</a>中找到。沙龙中收获比较大的是有关UC的何杰分享的Android应用性能优化实践，和手Q web业务优化的解析。</p>
+
+<!--more-->
+
+
+<p>Android应用性能优化实践中，提及了比较多性能优化的干货。一般我们对于性能的调试多是依赖开发者工具，而uc对性能优化做了额外有趣而且有创意的事情。<br/>
+uc对应用有六个硬性的指标，分别是以下几点：</p>
+
+<ul>
+<li><strong>流量消耗</strong>（感谢zqjia大神指出）</li>
+<li><strong>性能</strong></li>
+<li><strong>稳定性</strong></li>
+<li><strong>内存占用</strong></li>
+<li><strong>电量消耗</strong></li>
+<li><strong>apk大小</strong></li>
+</ul>
+
+
+<p>应该是这六点，希望我没有记错。其中性能是一个比较重要而又比较难的难点。性能问题造成的因素很多，产品功能因素，代码原因，设备配置，设备运行软件数量，是否安装安全软件，rom适配，等等。有很多问题，在开发测试甚至灰度测试的时候难以发现，依赖用户反馈时，对问题描述量化等也比较难。<br/>
+uc在性能优化的思路是，先确保主路径的流畅，再追求整体的卡顿优化；线下分析结合线上监控查询定位性能问题；先解决卡，再解决顿。<br/>
+工具上，先是老生常谈的开发者工具，TraceView，Overdraw，Systrace，StrictMode，Hierarchy Viewer等是必定要用的调试工具。接着是关键点的打点统计，对启动时间，相应速度的监控（输出时间差）。接着就是用户反馈的分析，ANR（Application not response）日志分析，StrictMode下的ANR分析，以及我第一次了解到的Looper Hook调试方法。我个人认为的重点如下：</p>
+
+<ul>
+<li><strong>用户反馈分类</strong>：按照使用功能，发生频率，用户类型分类</li>
+<li><strong>StrictMode ANR</strong>：更加严格，会暴露更多可能的潜在问题</li>
+<li><strong>Looper Hook</strong>：在UI线程以外开启一条线程，定时向UI线程post一个runnable，并记下post时间。runnable的内容是将执行时间同步回发送线程，如果UI线程被阻塞，那么post过去的runnable不能被准时执行，那么同步回去的执行时间会与post时间有这较大的差值，设定几个阀值（1000ms或5000ms），用来评测不同情况下卡UI线程的情况，并可以通过log Message.what的值和Message.callback的类型来判断发生场景。对于这里，建议大家看下Looper，Message，Handler，MessageQueue的源码实现。</li>
+</ul>
+
+
+<p>而在优化的细节上，uc也总结了很多方案（200+）。有一些关键点有：</p>
+
+<ul>
+<li><strong>分段加载</strong></li>
+<li><strong>延迟加载</strong>：耗时操作延后执行，执行时机通过post runnable到UIThread触发，表明UIThread已经idle，可以尝试进行耗时操作</li>
+<li><strong>缓存复用</strong>：不只是数据，View也可以复用，在Activity rotate的时候，在View被destory前保存View实例，在Activity recreate之后将View重新add到layout中，只需要重新measure layout draw，省略new View的过程</li>
+<li>运行时<strong>线程管理</strong>防止抢占资源，造成UIThread运行卡顿</li>
+<li>引入<strong>异步dns</strong>及<strong>cache</strong>防止获取网络代理卡顿</li>
+<li>解决start第三方Activity外部crash导致app卡死：采用外壳Activity方案解决，即start第三方Activity时采用：<strong>Activity -> ShieldActivity -> Third party Activity</strong> 的调用方法。</li>
+<li>尝试开启<strong>GPU加速</strong>（难点，代价比较大）</li>
+<li>SharedPreference：<strong>commit()</strong>是UIThread线程执行，如果保存数据过大，可能卡UIThread，换用<strong>apply()</strong>。</li>
+<li>安全软件拦截：<strong>沟通反馈</strong></li>
+</ul>
+
+
+<p>在举出案例之后，也给出了一些总结：</p>
+
+<ul>
+<li><strong>培养异步化的思维，不只是开发，产品也需要多考虑这一方面</strong></li>
+<li><strong>不要尝试假定用户可能的使用场景在一个小的范围内，实际情况可能很极限（举了一个用户下载列表8k多条目的例子）</strong></li>
+<li><strong>预加载 + 闲时加载 + 按需加载</strong></li>
+<li><strong>线程限制管理（控制并发） + 任务队列</strong></li>
+<li><strong>压力测试</strong></li>
+<li><strong>防御式编程</strong>（<a href="http://zh.wikipedia.org/wiki/%E9%98%B2%E5%BE%A1%E6%80%A7%E7%BC%96%E7%A8%8B">Wiki</a>）</li>
+<li><strong>禁止UIThread做如下操作：文件IO读写，耗CPU操作，IPC同步</strong></li>
+</ul>
+
+
+<p>洋洋洒洒居然写了这么多，由此可以看出这个分享的干货之多。真心十分感谢阿里的这次技术分享，真心学到东西了。沙龙的ppt和视频应该近期在他们的微博就会放出，大家可以关注一下。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">杨辉</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2015-02-01T11:42:04+08:00" pubdate data-updated="true">Feb 1st, 2015</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/android/'>android</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yanghui.name/blog/2015/02/01/2015-1-31-ali-technical-salon/" data-via="yugy1991" data-counturl="http://yanghui.name/blog/2015/02/01/2015-1-31-ali-technical-salon/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/01/20/android-developer-tools/" title="Previous Post: Android developer tools（开发人员工具）">&laquo; Android developer tools（开发人员工具）</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/05/19/view-and-viewgroups-measure-layout-and-draw/" title="Next Post: view and ViewGroup's measure layout and draw">view and ViewGroup&#8217;s measure layout and draw &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+  <aside class="sidebar">
+   
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yanghui.name" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/09/28/fragment-recreate-2/">Fragment Recreate(2)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/27/fragment-recreate-1/">Fragment Recreate(1)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/31/tools-namespace-and-support-library-annotations/">Tools 命名空间的使用与 Support Library Annotations 介绍</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/19/make-all-command-through-proxy/">Terminal 代理方案</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/">Why Is ListView&#8217;s HeaderView/FooterView setVisibility(View.GONE) Not Working?</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating&#8230;</li>
+  </ul>
+  
+  <a href="https://github.com/kyze8439690">@kyze8439690</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'kyze8439690',
+            count: 11,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+<section>
+	<h1>Friendly Link</h1>
+	<ul id="recent_posts">
+      <li class="post">
+        <a href="http://daimajia.com/">http://daimajia.com/</a>
+      </li>
+  </ul>
+</section>
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/105933083684642036089?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+<section>
+  <link href="https://coderbits.com/content/widget/coderbits.css" media="all" rel="stylesheet" type="text/css">
+  <style type="text/css">
+    #coderbits {
+      margin: 10px 0 0 0;
+    }
+  </style>
+  <h1>Coderbits Portfolio</h1>
+  <section id="coderbits" data-coderbits-username="kyze8439690"></section>
+  <script src="https://coderbits.com/content/widget/coderbits.js"></script>
+</section>
+
+<section>
+  <h1>About Me</h1>
+  <p>A little something about me.</p>
+</section>
+
+  
+</aside>
+
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - 杨辉 -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'kyze8439690';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://yanghui.name/blog/2015/02/01/2015-1-31-ali-technical-salon/';
+        var disqus_url = 'http://yanghui.name/blog/2015/02/01/2015-1-31-ali-technical-salon/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+<script>
+  $(document).ready(function() {  
+    var stickyNavTop = $('nav').offset().top;  
+      
+    var stickyNav = function(){  
+      var scrollTop = $(window).scrollTop(); 
+      var navHasClassSticky = $('nav').hasClass('sticky');
+
+      if (scrollTop > stickyNavTop && navHasClassSticky) {   
+        return true;
+      } else if (scrollTop > stickyNavTop) {
+        $('nav').hide();
+        $('nav').addClass('sticky');
+        $('nav').fadeIn('2000');
+      } else {  
+        $('nav').removeClass('sticky');   
+      }  
+    };  
+      
+    stickyNav();  
+      
+    $(window).scroll(function() {  
+      stickyNav();  
+    });  
+  });  
+</script>
+
+
+</body>
+</html>
