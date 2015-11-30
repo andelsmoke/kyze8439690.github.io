@@ -91,8 +91,17 @@ Hex Code  | Key       |
 0x70      |  p        |
 0x63      |  c        |
 0x20      |  [space]  |
-0xd       |  ↩︎       |
+0xd       |  ↩︎       |  
+  
+  
+**2015/11/30 更新**
 
+由于 OSX 10.11 的 SIP 特性，会导致 proxychains-ng 安装失败，这里有两种解决方法：
+
+- 如果是使用 brew install proxychains-ng 安装的话，由于没有写入权限，必须暂时关闭 SIP，安装成功之后再打开 SIP。具体方法见 [http://osxdaily.com/2015/10/05/disable-rootless-system-integrity-protection-mac-os-x/](http://osxdaily.com/2015/10/05/disable-rootless-system-integrity-protection-mac-os-x/)
+- 如果不使用 brew install 的话，可以 clone 源码自己编译安装，关键是避免安装到 usr 目录（无法写入），手动指定写入目录，如 `./configure --prefix=$HOME/.local --sysconfdir=/etc`，etc 有写入权限不必修改，记得添加环境变量即可
+
+初此之外，OSX 自带的 git，curl 等版本过低，无法支持 proxychains-ng，请手动更新版本。
 
 **Thanks to:**
 
