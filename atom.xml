@@ -4,7 +4,7 @@
   <title><![CDATA[杨辉的个人博客]]></title>
   <link href="http://yanghui.name/atom.xml" rel="self"/>
   <link href="http://yanghui.name/"/>
-  <updated>2015-09-28T20:09:43+08:00</updated>
+  <updated>2016-02-17T18:37:53+08:00</updated>
   <id>http://yanghui.name/</id>
   <author>
     <name><![CDATA[杨辉]]></name>
@@ -12,6 +12,967 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[(译)Data Binding 指南]]></title>
+    <link href="http://yanghui.name/blog/2016/02/17/data-binding-guide/"/>
+    <updated>2016-02-17T18:32:59+08:00</updated>
+    <id>http://yanghui.name/blog/2016/02/17/data-binding-guide</id>
+    <content type="html"><![CDATA[<p><strong>翻译自 <a href="http://developer.android.com/intl/zh-cn/tools/data-binding/guide.html">http://developer.android.com/intl/zh-cn/tools/data-binding/guide.html</a></strong></p>
+
+<p>这个文档用于解释如何使用 Data Binding Library 编写声明式的布局，减少应用中逻辑以及布局所需要的“胶水代码”。</p>
+
+<p>Data Binding Library 提供了灵活性与通用性 － 它是一个 support library，可以在 Android 2.1(API level 7+)以上的平台使用。</p>
+
+<p>为了使用 data binding，gradle plugin的版本必须是 1.5.0-alpha1以上。</p>
+
+<!--more-->
+
+
+<h2>编译环境</h2>
+
+<p>为了使用 Data Binding，首先在 Android SDK manager 中下载最新的 Support repository。</p>
+
+<p>然后在 build.gradle 中添加 dataBinding 段。</p>
+
+<p>使用以下代码段配置 data binding：</p>
+
+<pre><code>android {
+    ....
+    dataBinding {
+        enabled = true
+    }
+}
+</code></pre>
+
+<p>如果你的 app module 依赖了一个使用 data binding 的库，那么你的 app module 的 build.gradle 也必须配置 data binding。</p>
+
+<p>同时，确定使用了支持该特性的 Android Studio。在 Android Studio 1.3 以及之后的版本提供了 data binding 的支持，详见 <a href="http://developer.android.com/intl/zh-cn/tools/data-binding/guide.html#studio_support">Android Studio Support for Data Binding</a>。</p>
+
+<h2>Data Binding 布局文件</h2>
+
+<h3>编写你的第一个 data binding 表达式</h3>
+
+<p>Data binding 布局文件与普通布局文件有一点不同。它以一个 <code>layout</code> 标签作为根节点，里面是 <code>data</code> 标签与 <code>view</code> 标签。view 标签的内容就是不使用 data binding 时的普通布局文件内容。以下是一个例子：</p>
+
+<pre><code>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;layout xmlns:android="http://schemas.android.com/apk/res/android"&gt;
+   &lt;data&gt;
+       &lt;variable name="user" type="com.example.User"/&gt;
+   &lt;/data&gt;
+   &lt;LinearLayout
+       android:orientation="vertical"
+       android:layout_width="match_parent"
+       android:layout_height="match_parent"&gt;
+       &lt;TextView android:layout_width="wrap_content"
+           android:layout_height="wrap_content"
+           android:text="@{user.firstName}"/&gt;
+       &lt;TextView android:layout_width="wrap_content"
+           android:layout_height="wrap_content"
+           android:text="@{user.lastName}"/&gt;
+   &lt;/LinearLayout&gt;
+&lt;/layout&gt;
+</code></pre>
+
+<p>在 <code>data</code> 标签中的 user 变量 描述了一个布局中会用到的属性。</p>
+
+<pre><code>&lt;variable name="user" type="com.example.User"/&gt;
+</code></pre>
+
+<p>布局文件中的表达式使用 “@{}” 的语法。在这里，TextView 的文本被设置为 user中的 firstName 属性。</p>
+
+<pre><code>&lt;TextView android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="@{user.firstName}"/&gt;
+</code></pre>
+
+<h3>数据对象</h3>
+
+<p>假设你有一个 plain-old Java object(POJO) 的 User 对象。</p>
+
+<pre><code>public class User {
+   public final String firstName;
+   public final String lastName;
+   public User(String firstName, String lastName) {
+       this.firstName = firstName;
+       this.lastName = lastName;
+   }
+}
+</code></pre>
+
+<p>这种类型的对象拥有不可改变的数据。在应用中，读一次且不变动数据的对象非常常见。也可以使用 JavaBeans 对象：</p>
+
+<pre><code>public class User {
+   private final String firstName;
+   private final String lastName;
+   public User(String firstName, String lastName) {
+       this.firstName = firstName;
+       this.lastName = lastName;
+   }
+   public String getFirstName() {
+       return this.firstName;
+   }
+   public String getLastName() {
+       return this.lastName;
+   }
+}
+</code></pre>
+
+<p>从 data binding 的角度看，这两个类是一样的。用于 TextView 的 <code>android:text</code> 属性的表达式<code>@{user.firstName}</code>，会读取 POJO 对象的 <code>firstName</code> 域以及 JavaBeans 对象的 <code>getFirstName()</code> 方法。此外，如果 <code>firstName()</code> 方法存在的话也同样可用。</p>
+
+<h3>绑定数据</h3>
+
+<p>在默认情况下，会基于布局文件生成一个 Binding 类，将它转换成帕斯卡命名并在名字后面接上&#8221;Binding&#8221;。上面的那个布局文件叫 <code>main_activity.xml</code>，所以会生成一个 <code>MainActivityBinding</code> 类。这个类包含了布局文件中所有的绑定关系（<code>user</code>变量），会根据绑定表达式给布局文件赋值。在 inflate 的时候创建 binding 的方法如下：</p>
+
+<pre><code>@Override
+protected void onCreate(Bundle savedInstanceState) {
+   super.onCreate(savedInstanceState);
+   MainActivityBinding binding = DataBindingUtil.setContentView(this, R.layout.main_activity);
+   User user = new User("Test", "User");
+   binding.setUser(user);
+}
+</code></pre>
+
+<p>就这么简单！运行应用，你会发现测试用户已经显示在界面中了。你也可以通过以下这种方式：</p>
+
+<pre><code>MainActivityBinding binding = MainActivityBinding.inflate(getLayoutInflater());
+</code></pre>
+
+<p>如果你在 ListView 或者 RecyclerView 的 adapter 中使用 data binding，你可以这样写：</p>
+
+<pre><code>ListItemBinding binding = ListItemBinding.inflate(layoutInflater, viewGroup, false);
+//or
+ListItemBinding binding = DataBindingUtil.inflate(layoutInflater, R.layout.list_item, viewGroup, false);
+</code></pre>
+
+<h3>绑定事件</h3>
+
+<p>事件可以直接与 handler 函数绑定，类似于 <code>android:onClick</code> 可以指定 Activity 中的一个函数一样。事件属性的命名由 listener 的函数命名决定。举个例子，<code>View.OnLongClickListener</code> 中有一个 <code>onLongClick()</code> 函数，所以这个事件的对应属性就是 <code>android:onLongClick</code>。</p>
+
+<p>为了将事件分配给 handler，只需要使用一个 binding 表达式，值为要调用的函数名。举个例子，如果你的数据对象有两个函数：</p>
+
+<pre><code>public class MyHandlers {
+    public void onClickFriend(View view) { ... }
+    public void onClickEnemy(View view) { ... }
+}
+</code></pre>
+
+<p>分配点击事件的 binding 表达式如下：</p>
+
+<pre><code>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;layout xmlns:android="http://schemas.android.com/apk/res/android"&gt;
+   &lt;data&gt;
+       &lt;variable name="handlers" type="com.example.Handlers"/&gt;
+       &lt;variable name="user" type="com.example.User"/&gt;
+   &lt;/data&gt;
+   &lt;LinearLayout
+       android:orientation="vertical"
+       android:layout_width="match_parent"
+       android:layout_height="match_parent"&gt;
+       &lt;TextView android:layout_width="wrap_content"
+           android:layout_height="wrap_content"
+           android:text="@{user.firstName}"
+           android:onClick="@{user.isFriend ? handlers.onClickFriend : handlers.onClickEnemy}"/&gt;
+       &lt;TextView android:layout_width="wrap_content"
+           android:layout_height="wrap_content"
+           android:text="@{user.lastName}"
+           android:onClick="@{user.isFriend ? handlers.onClickFriend : handlers.onClickEnemy}"/&gt;
+   &lt;/LinearLayout&gt;
+&lt;/layout&gt;
+</code></pre>
+
+<p>也有一个特殊的点击事件 handler，他们有一些不同于 <code>android:onClick</code> 的属性来避免冲突。下面是一些用来避免冲突的属性：</p>
+
+<table>
+<thead>
+<tr>
+<th>Class   </th>
+<th>Listener Setter   </th>
+<th>Attribute   </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="http://developer.android.com/reference/android/widget/SearchView.html">SearchView</a>   </td>
+<td><a href="http://developer.android.com/reference/android/widget/SearchView.html#setOnSearchClickListener(android.view.View.OnClickListener">setOnSearchClickListener(View.OnClickListener)</a>)   </td>
+<td>  <code>android:onSearchClick</code> </td>
+</tr>
+<tr>
+<td><a href="http://developer.android.com/reference/android/widget/ZoomControls.html">ZoomControls</a>   </td>
+<td><a href="http://developer.android.com/reference/android/widget/ZoomControls.html#setOnZoomInClickListener(android.view.View.OnClickListener">setOnZoomInClickListener(View.OnClickListener)</a>)   </td>
+<td><code>android:onZoomIn</code>   </td>
+</tr>
+<tr>
+<td><a href="http://developer.android.com/reference/android/widget/ZoomControls.html">ZoomControls</a>   </td>
+<td><a href="http://developer.android.com/reference/android/widget/ZoomControls.html#setOnZoomOutClickListener(android.view.View.OnClickListener">setOnZoomOutClickListener(View.OnClickListener)</a>)   </td>
+<td><code>android:onZoomOut</code>   </td>
+</tr>
+</tbody>
+</table>
+
+
+<h2>布局细节</h2>
+
+<h3>导入</h3>
+
+<p><code>data</code>标签内可以有多个 <code>import</code> 标签。你可以在布局文件中像使用 Java 一样导入引用。</p>
+
+<pre><code>&lt;data&gt;
+    &lt;import type="android.view.View"/&gt;
+&lt;/data&gt;
+</code></pre>
+
+<p>现在 View 可以被这样引用：</p>
+
+<pre><code>&lt;TextView
+   android:text="@{user.lastName}"
+   android:layout_width="wrap_content"
+   android:layout_height="wrap_content"
+   android:visibility="@{user.isAdult ? View.VISIBLE : View.GONE}"/&gt;
+</code></pre>
+
+<p>当类名发生冲突时，可以使用 alias：</p>
+
+<pre><code>&lt;import type="android.view.View"/&gt;
+&lt;import type="com.example.real.estate.View"
+        alias="Vista"/&gt;
+</code></pre>
+
+<p>现在，<code>Vista</code> 可以用来引用 <code>com.example.real.estate.View</code> ，与 <code>View</code> 在布局文件中同时使用。导入的类型也可以用于变量的类型引用和表达式中：</p>
+
+<pre><code>&lt;data&gt;
+    &lt;import type="com.example.User"/&gt;
+    &lt;import type="java.util.List"/&gt;
+    &lt;variable name="user" type="User"/&gt;
+    &lt;variable name="userList" type="List&amp;lt;User&gt;"/&gt;
+&lt;/data&gt;
+</code></pre>
+
+<blockquote><p>注意：Android Studio 还没有对导入提供自动补全的支持。你的应用还是可以被正常编译，要解决这个问题，你可以在变量定义中使用完整的包名。</p></blockquote>
+
+<pre><code>&lt;TextView
+   android:text="@{((User)(user.connection)).lastName}"
+   android:layout_width="wrap_content"
+   android:layout_height="wrap_content"/&gt;
+</code></pre>
+
+<p>导入也可以用于在表达式中使用静态域/方法:</p>
+
+<pre><code>&lt;data&gt;
+    &lt;import type="com.example.MyStringUtils"/&gt;
+    &lt;variable name="user" type="com.example.User"/&gt;
+&lt;/data&gt;
+…
+&lt;TextView
+   android:text="@{MyStringUtils.capitalize(user.lastName)}"
+   android:layout_width="wrap_content"
+   android:layout_height="wrap_content"/&gt;
+</code></pre>
+
+<p>和 Java 一样，<code>java.lang.*</code> 会被自动导入。</p>
+
+<h3>变量</h3>
+
+<p><code>data</code> 标签中可以有任意数量的 <code>variable</code> 标签。每个 <code>variable</code> 标签描述了会在 binding 表达式中使用的属性。</p>
+
+<pre><code>&lt;data&gt;
+    &lt;import type="android.graphics.drawable.Drawable"/&gt;
+    &lt;variable name="user"  type="com.example.User"/&gt;
+    &lt;variable name="image" type="Drawable"/&gt;
+    &lt;variable name="note"  type="String"/&gt;
+&lt;/data&gt;
+</code></pre>
+
+<p>变量类型会在编译时被检查，所以如果变量声明了 <code>Observable</code> 接口或者是一个<a href="http://developer.android.com/intl/zh-cn/tools/data-binding/guide.html#observable_collections">可观察容器类</a>，那它会被反射使用。如果变量是一个没有声明 Observable* 接口的基类或借口，变量的变动则不会引起 UI 的变化！</p>
+
+<p>当针对不同配置编写不同的布局文件时（比如横屏竖屏的布局），变量会被合并。所以这些不同配置的布局文件之间不能存在冲突。</p>
+
+<p>自动生成的 binding 类会为每一个变量生产 getter/setter 函数。这些变量会使用 Java 的默认赋值，直到 setter 函数被调用。默认赋值有 <code>null</code>，<code>0</code>(<code>int</code>)，<code>false</code>(<code>boolean</code>)等。</p>
+
+<p>binding 类也会生一个一个命名为 <code>context</code> 的特殊变量，这个变量被用于表达式中。<code>context</code> 变量其实就是 rootView 的 <a href="http://developer.android.com/reference/android/view/View.html#getContext("><code>getContext()</code></a>) 的返回值。<code>context</code> 变量会被同名的显式变量覆盖。</p>
+
+<h3>自定义 Binding 类名</h3>
+
+<p>默认情况下，binding 类的名称取决于布局文件的命名，以大写字母开头，移除下划线，后续字母大写并追加 “Binding” 结尾。这个类会被放置在 databinding 包中。举个例子，布局文件 <code>contact_item.xml</code> 会生成 <code>ContactItemBinding</code> 类。如果 module 包名为 <code>com.example.my.app</code>，binding 类会被放在 <code>com.example.my.app.databinding</code> 中。</p>
+
+<p>通过修改 <code>data</code>标签中的<code>class</code> 属性，可以修改 Binding 类的命名与位置。举个例子：</p>
+
+<pre><code>&lt;data class="ContactItem"&gt;
+    ...
+&lt;/data&gt;
+</code></pre>
+
+<p>以上会在 databinding 包中生成名为 <code>ContactItem</code> 的binding 类。如果需要放置在不同的包下，可以在前面加 &ldquo;.&#8221;：</p>
+
+<pre><code>&lt;data class=".ContactItem"&gt;
+    ...
+&lt;/data&gt;
+</code></pre>
+
+<p>这样的话，<code>ContactItem</code> 会直接生成在 module 包下。如果提供完整的包名，binding 类可以放置在任何包名中：</p>
+
+<pre><code>&lt;data class="com.example.ContactItem"&gt;
+    ...
+&lt;/data&gt;
+</code></pre>
+
+<h3>Includes</h3>
+
+<p>在使用应用命名空间的布局中，变量可以传递到任何 include 布局中。</p>
+
+<pre><code>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;layout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:bind="http://schemas.android.com/apk/res-auto"&gt;
+   &lt;data&gt;
+       &lt;variable name="user" type="com.example.User"/&gt;
+   &lt;/data&gt;
+   &lt;LinearLayout
+       android:orientation="vertical"
+       android:layout_width="match_parent"
+       android:layout_height="match_parent"&gt;
+       &lt;include layout="@layout/name"
+           bind:user="@{user}"/&gt;
+       &lt;include layout="@layout/contact"
+           bind:user="@{user}"/&gt;
+   &lt;/LinearLayout&gt;
+&lt;/layout&gt;
+</code></pre>
+
+<p>需要注意，<code>name.xml</code> 与 <code>contact.xml</code> 中都需要声明 <code>user</code> 变量。</p>
+
+<p>Data binding 不支持直接包含 merge 节点。举个例子，<strong>以下的代码就不能正常运行</strong>：</p>
+
+<pre><code>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;layout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:bind="http://schemas.android.com/apk/res-auto"&gt;
+   &lt;data&gt;
+       &lt;variable name="user" type="com.example.User"/&gt;
+   &lt;/data&gt;
+   &lt;merge&gt;
+       &lt;include layout="@layout/name"
+           bind:user="@{user}"/&gt;
+       &lt;include layout="@layout/contact"
+           bind:user="@{user}"/&gt;
+   &lt;/merge&gt;
+&lt;/layout&gt;
+</code></pre>
+
+<h2>表达式语言</h2>
+
+<h3>通用特性</h3>
+
+<p>表达式语言与 Java 表达式有很多相似之处。下面是相同之处：</p>
+
+<ul>
+<li>数学计算 <code>+ - / * %</code></li>
+<li>字符串连接 <code>+</code></li>
+<li>逻辑 <code>&amp;&amp; ||</code></li>
+<li>二进制 <code>&amp; | ^</code></li>
+<li>一元    <code>+ - ! ~</code></li>
+<li>位移 <code>&gt;&gt; &gt;&gt;&gt; &lt;&lt;</code></li>
+<li>比较 <code>== &gt; &lt; &gt;= &lt;=</code></li>
+<li><code>instanceof</code></li>
+<li>组 <code>()</code></li>
+<li>字面量 - 字符，字符串，数字，<code>null</code></li>
+<li>类型转换</li>
+<li>函数调用</li>
+<li>域存取</li>
+<li>数组存取 <code>[]</code></li>
+<li>三元运算符 <code>?:</code></li>
+</ul>
+
+
+<p>例子：</p>
+
+<pre><code>android:text="@{String.valueOf(index + 1)}"
+android:visibility="@{age &amp;lt; 13 ? View.GONE : View.VISIBLE}"
+android:transitionName='@{"image_" + id}'
+</code></pre>
+
+<h3>缺失的操作符</h3>
+
+<p>一些 Java 中的操作符在表达式语法中不能使用。</p>
+
+<ul>
+<li><code>this</code></li>
+<li><code>super</code></li>
+<li><code>new</code></li>
+<li>显式泛型调用 <code>&lt;T&gt;</code></li>
+</ul>
+
+
+<h3>Null合并运算符</h3>
+
+<p>Null合并运算符(<code>??</code>)会在非 null 的时候选择左边的操作，反之选择右边。</p>
+
+<pre><code>android:text="@{user.displayName ?? user.lastName}"
+</code></pre>
+
+<p>等同于</p>
+
+<pre><code>android:text="@{user.displayName != null ? user.displayName : user.lastName}"
+</code></pre>
+
+<h3>属性引用</h3>
+
+<p>首先是先前<a href="http://developer.android.com/intl/zh-cn/tools/data-binding/guide.html#writing_your_first_data_binding_expressions">编写你的第一个 data binding 表达式</a>中所提到的：JavaBean 引用。当表达式引用了一个类内的属性时，他会尝试直接调用域，getter，还有 ObservableFields。</p>
+
+<pre><code>android:text="@{user.lastName}"
+</code></pre>
+
+<h3>避免NullPointerException</h3>
+
+<p>自动生成的 data binding 代码会自动检查和避免 null pointer exceptions。举个例子，在表达式 <code>@{user.name}</code> 中，如果 <code>user</code> 是 null，<code>user.name</code> 会赋予默认值 <code>null</code>。如果你引用了 <code>user.age</code>，因为 age 是 <code>int</code> 类型，所以默认赋值为 0。</p>
+
+<h3>容器类</h3>
+
+<p>通用的容器类：数组，lists，sparse lists，和 map，可以用 <code>[]</code> 操作符来存取</p>
+
+<pre><code>&lt;data&gt;
+    &lt;import type="android.util.SparseArray"/&gt;
+    &lt;import type="java.util.Map"/&gt;
+    &lt;import type="java.util.List"/&gt;
+    &lt;variable name="list" type="List&amp;lt;String&gt;"/&gt;
+    &lt;variable name="sparse" type="SparseArray&amp;lt;String&gt;"/&gt;
+    &lt;variable name="map" type="Map&amp;lt;String, String&gt;"/&gt;
+    &lt;variable name="index" type="int"/&gt;
+    &lt;variable name="key" type="String"/&gt;
+&lt;/data&gt;
+…
+android:text="@{list[index]}"
+…
+android:text="@{sparse[index]}"
+…
+android:text="@{map[key]}"
+</code></pre>
+
+<h3>字符串字面量</h3>
+
+<p>使用单引号把属性包起来，就可以很简单地在表达式中使用双引号：</p>
+
+<pre><code>android:text='@{map["firstName"]}'
+</code></pre>
+
+<p>也可以用双引号将属性包起来。这样的话，字符串字面量就可以用<code>&amp;quot;</code>或者反引号(`) 来调用</p>
+
+<pre><code>android:text="@{map[`firstName`}"
+android:text="@{map[&amp;quot;firstName&amp;quot;]}"
+</code></pre>
+
+<h3>资源</h3>
+
+<p>也可以在表达式中使用普通的语法来引用资源：</p>
+
+<pre><code>android:padding="@{large? @dimen/largePadding : @dimen/smallPadding}"
+</code></pre>
+
+<p>字符串格式化和复数形式可以这样实现：</p>
+
+<pre><code>android:text="@{@string/nameFormat(firstName, lastName)}"
+android:text="@{@plurals/banana(bananaCount)}"
+</code></pre>
+
+<p>当复数形式有多个参数时，应该这样写：</p>
+
+<pre><code>  Have an orange
+  Have %d oranges
+
+android:text="@{@plurals/orange(orangeCount, orangeCount)}"
+</code></pre>
+
+<p>一些资源需要显示类型调用。</p>
+
+<table>
+<thead>
+<tr>
+<th>Class   </th>
+<th>Listener Setter   </th>
+<th>Attribute   </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>String[]   </td>
+<td>@array   </td>
+<td>@stringArray   </td>
+</tr>
+<tr>
+<td>int[]   </td>
+<td>@array   </td>
+<td>@intArray   </td>
+</tr>
+<tr>
+<td>TypedArray   </td>
+<td>@array   </td>
+<td>@typedArray   </td>
+</tr>
+<tr>
+<td>Animator   </td>
+<td>@animator   </td>
+<td>@animator   </td>
+</tr>
+<tr>
+<td>StateListAnimator   </td>
+<td>@animator   </td>
+<td>@stateListAnimator   </td>
+</tr>
+<tr>
+<td>color <code>int</code>   </td>
+<td>@color   </td>
+<td>@color   </td>
+</tr>
+<tr>
+<td>ColorStateList   </td>
+<td>@color   </td>
+<td>@colorStateList   </td>
+</tr>
+</tbody>
+</table>
+
+
+<h2>数据对象</h2>
+
+<p>任何 POJO 都能用在 data binding 中，但是更改 POJO 并不会同步更新 UI。data binding 的强大之处就在于它可以让你的数据拥有更新通知的能力。这里有三种不同的数据变动通知机制，<a href="http://developer.android.com/intl/zh-cn/tools/data-binding/guide.html#observable_objects">Observable 对象</a>，<a href="http://developer.android.com/intl/zh-cn/tools/data-binding/guide.html#observablefields">observable 域</a>，与 <a href="http://developer.android.com/intl/zh-cn/tools/data-binding/guide.html#observable_collections">observable 容器类</a>。</p>
+
+<p>当以上的 observable 对象绑定在 UI 上，数据发生变化时，UI 就会同步更新。</p>
+
+<h3>Observable 对象</h3>
+
+<p>当一个类声明了 <a href="http://developer.android.com/reference/android/databinding/Observable.html"><code>Observable</code></a> 接口时，data binding 会设置一个 listener 在绑定的对象上，以便监听对象域的变动。</p>
+
+<p><a href="http://developer.android.com/reference/android/databinding/Observable.html"><code>Observable</code></a> 接口有一个添加/移除 listener 的机制，但通知取决于开发者。为了简化开发，我们创建了一个基类 <a href="http://developer.android.com/reference/android/databinding/BaseObservable.html"><code>BaseObservable</code></a>，来实现 listener 注册机制。这个类也实现了域变动的通知，你只需要在 getter 上使用 <a href="http://developer.android.com/reference/android/databinding/Bindable.html"><code>Bindable</code></a> 注解，并在 setter 中实现通知。</p>
+
+<pre><code>private static class User extends BaseObservable {
+   private String firstName;
+   private String lastName;
+   @Bindable
+   public String getFirstName() {
+       return this.firstName;
+   }
+   @Bindable
+   public String getLastName() {
+       return this.lastName;
+   }
+   public void setFirstName(String firstName) {
+       this.firstName = firstName;
+       notifyPropertyChanged(BR.firstName);
+   }
+   public void setLastName(String lastName) {
+       this.lastName = lastName;
+       notifyPropertyChanged(BR.lastName);
+   }
+}
+</code></pre>
+
+<p><code>Bindable</code> 注解会在编译时在 BR 类内生成一个元素。而 BR 类会生成在 module 的 package 下。如果数据基类不可修改，<a href="http://developer.android.com/reference/android/databinding/Observable.html"><code>Observable</code></a> 接口的存储和 listener 通知可以用 <a href="http://developer.android.com/reference/android/databinding/PropertyChangeRegistry.html"><code>PropertyChangeRegistry</code></a> 来实现。</p>
+
+<h3>Observable域</h3>
+
+<p>创建 <a href="http://developer.android.com/reference/android/databinding/Observable.html"><code>Observable</code></a> 类还是需要花费一点时间的，如果开发者想要省时，或者数据类的域很少的话，可以使用 <a href="http://developer.android.com/reference/android/databinding/ObservableField.html"><code>ObservableField</code></a> 以及它的派生 <a href="http://developer.android.com/reference/android/databinding/ObservableBoolean.html"><code>ObservableBoolean</code></a>，<a href="http://developer.android.com/reference/android/databinding/ObservableByte.html"><code>ObservableByte</code></a>，<a href="http://developer.android.com/reference/android/databinding/ObservableChar.html"><code>ObservableChar</code></a>，<a href="http://developer.android.com/reference/android/databinding/ObservableShort.html"><code>ObservableShort</code></a>，<a href="http://developer.android.com/reference/android/databinding/ObservableInt.html"><code>ObservableInt</code></a>，<a href="http://developer.android.com/reference/android/databinding/ObservableLong.html"><code>ObservableLong</code></a>，<a href="http://developer.android.com/reference/android/databinding/ObservableFloat.html"><code>ObservableFloat</code></a>，<a href="http://developer.android.com/reference/android/databinding/ObservableDouble.html"><code>ObservableDouble</code></a>，<a href="http://developer.android.com/reference/android/databinding/ObservableParcelable.html"><code>ObservableParcelable</code></a>。<code>ObservableFields</code> 是单一域的自包含 observable 对象。原始版本避免了在存取过程中做打包/解包操作。要使用它，在数据类中创建一个 public final 域：</p>
+
+<pre><code>private static class User {
+   public final ObservableField&lt;String&gt; firstName =
+       new ObservableField&lt;&gt;();
+   public final ObservableField&lt;String&gt; lastName =
+       new ObservableField&lt;&gt;();
+   public final ObservableInt age = new ObservableInt();
+}
+</code></pre>
+
+<p>就这么简单！要存取数据，只需要使用 get set 方法：</p>
+
+<pre><code>user.firstName.set("Google");
+int age = user.age.get();
+</code></pre>
+
+<h3>Observable 容器类</h3>
+
+<p>一些应用会使用更加灵活的结构来保持数据。Observable 容器类允许使用 key 来获取这类数据。当 key 是类似 String 的一类引用类型时，使用 <a href="http://developer.android.com/reference/android/databinding/ObservableArrayMap.html"><code>ObservableArrayMap</code></a> 会非常方便。</p>
+
+<pre><code>ObservableArrayMap&lt;String, Object&gt; user = new ObservableArrayMap&lt;&gt;();
+user.put("firstName", "Google");
+user.put("lastName", "Inc.");
+user.put("age", 17);
+</code></pre>
+
+<p>在布局中，可以用 String key 来获取 map 中的数据：</p>
+
+<pre><code>&lt;data&gt;
+    &lt;import type="android.databinding.ObservableMap"/&gt;
+    &lt;variable name="user" type="ObservableMap&amp;lt;String, Object&gt;"/&gt;
+&lt;/data&gt;
+…
+&lt;TextView
+   android:text='@{user["lastName"]}'
+   android:layout_width="wrap_content"
+   android:layout_height="wrap_content"/&gt;
+&lt;TextView
+   android:text='@{String.valueOf(1 + (Integer)user["age"])}'
+   android:layout_width="wrap_content"
+   android:layout_height="wrap_content"/&gt;
+</code></pre>
+
+<p>当 key 是整数类型时，可以使用 <a href="http://developer.android.com/reference/android/databinding/ObservableArrayList.html"><code>ObservableArrayList</code></a>：</p>
+
+<pre><code>ObservableArrayList&lt;Object&gt; user = new ObservableArrayList&lt;&gt;();
+user.add("Google");
+user.add("Inc.");
+user.add(17);
+</code></pre>
+
+<p>在布局文件中，使用下标获取列表数据：</p>
+
+<pre><code>&lt;data&gt;
+    &lt;import type="android.databinding.ObservableList"/&gt;
+    &lt;import type="com.example.my.app.Fields"/&gt;
+    &lt;variable name="user" type="ObservableList&amp;lt;Object&gt;"/&gt;
+&lt;/data&gt;
+…
+&lt;TextView
+   android:text='@{user[Fields.LAST_NAME]}'
+   android:layout_width="wrap_content"
+   android:layout_height="wrap_content"/&gt;
+&lt;TextView
+   android:text='@{String.valueOf(1 + (Integer)user[Fields.AGE])}'
+   android:layout_width="wrap_content"
+   android:layout_height="wrap_content"/&gt;
+</code></pre>
+
+<h2>生成Binding</h2>
+
+<p>生成的 binding 类将布局中的 View 与变量绑定在一起。就像先前提到过的，类名和包名可以<a href="http://developer.android.com/intl/zh-cn/tools/data-binding/guide.html#custom_binding_class_names">自定义</a>。生成的 binding 类会继承 <a href="http://developer.android.com/reference/android/databinding/ViewDataBinding.html"><code>ViewDataBinding</code></a>。</p>
+
+<h3>创建</h3>
+
+<p>binding 应该在 inflate 之后创建，确保 View 的层次结构不会在绑定前被干扰。绑定布局有好几种方式。最常见的是使用 binding 类中的静态方法。inflate 函数会 inflate View 并将 View 绑定到 binding 类上。此外有更加简单的函数，只需要一个 LayoutInflater 或一个 ViewGroup：</p>
+
+<pre><code>MyLayoutBinding binding = MyLayoutBinding.inflate(layoutInflater);
+MyLayoutBinding binding = MyLayoutBinding.inflate(layoutInflater, viewGroup, false);
+</code></pre>
+
+<p>如果布局使用不同的机制来 inflate，则可以独立做绑定操作：</p>
+
+<pre><code>MyLayoutBinding binding = MyLayoutBinding.bind(viewRoot);
+</code></pre>
+
+<p>有时绑定关系是不能提前确定的。这种情况下，可以使用 <a href="http://developer.android.com/reference/android/databinding/DataBindingUtil.html"><code>DataBindingUtil</code></a> ：</p>
+
+<pre><code>ViewDataBinding binding = DataBindingUtil.inflate(LayoutInflater, layoutId,
+    parent, attachToParent);
+ViewDataBinding binding = DataBindingUtil.bindTo(viewRoot, layoutId);
+</code></pre>
+
+<h3>带有 ID 的 View</h3>
+
+<p>布局中每一个带有 ID 的 View，都会生成一个 public final 域。binding过程会做一个简单的赋值，在 binding 类中保存对应 ID 的 View。这种机制相比调用 findViewById 效率更高。举个例子：</p>
+
+<pre><code>&lt;layout xmlns:android="http://schemas.android.com/apk/res/android"&gt;
+   &lt;data&gt;
+       &lt;variable name="user" type="com.example.User"/&gt;
+   &lt;/data&gt;
+   &lt;LinearLayout
+       android:orientation="vertical"
+       android:layout_width="match_parent"
+       android:layout_height="match_parent"&gt;
+       &lt;TextView android:layout_width="wrap_content"
+           android:layout_height="wrap_content"
+           android:text="@{user.firstName}"
+   android:id="@+id/firstName"/&gt;
+       &lt;TextView android:layout_width="wrap_content"
+           android:layout_height="wrap_content"
+           android:text="@{user.lastName}"
+  android:id="@+id/lastName"/&gt;
+   &lt;/LinearLayout&gt;
+&lt;/layout&gt;
+</code></pre>
+
+<p>将会在 binding 类内生成：</p>
+
+<pre><code>public final TextView firstName;
+public final TextView lastName;
+</code></pre>
+
+<p>ID 在 data binding 中并不是必需的，但是在某些情况下还有有必要对 View 进行操作。</p>
+
+<h3>变量</h3>
+
+<p>每一个变量会有相应的存取函数：</p>
+
+<pre><code>&lt;data&gt;
+    &lt;import type="android.graphics.drawable.Drawable"/&gt;
+    &lt;variable name="user"  type="com.example.User"/&gt;
+    &lt;variable name="image" type="Drawable"/&gt;
+    &lt;variable name="note"  type="String"/&gt;
+&lt;/data&gt;
+</code></pre>
+
+<p>并在 binding 类中生成对应的 getter setter：</p>
+
+<pre><code>public abstract com.example.User getUser();
+public abstract void setUser(com.example.User user);
+public abstract Drawable getImage();
+public abstract void setImage(Drawable image);
+public abstract String getNote();
+public abstract void setNote(String note);
+</code></pre>
+
+<h3>ViewStub</h3>
+
+<p><a href="http://developer.android.com/reference/android/view/ViewStub.html"><code>ViewStub</code></a> 相比普通 View 有一些不同。ViewStub 一开始是不可见的，当它们被设置为可见，或者调用 inflate 方法时，ViewStub 会被替换成另外一个布局。</p>
+
+<p>因为 <code>ViewStub</code> 实际上不存在于 View 结构中，binding 类中的类也得移除掉，以便系统回收。因为 binding 类中的 View 都是 final 的，所以我们使用了一个叫 <a href="http://developer.android.com/reference/android/databinding/ViewStubProxy.html"><code>ViewStubProxy</code></a> 的类来代替 <code>ViewStub</code>。开发者可以使用它来操作 ViewStub，获取 <code>ViewStub</code> inflate 时得到的视图。</p>
+
+<p>但 inflate 一个新的布局时，必须为新的布局创建一个 binding。因此，<code>ViewStubProxy</code> 必须监听 <code>ViewStub</code> 的 <a href="http://developer.android.com/reference/android/view/ViewStub.OnInflateListener.html"><code>ViewStub.OnInflateListener</code></a>，并及时建立 binding。由于 ViewStub 只能有一个 OnInflateListener，你可以将你自己的 listener 设置在 <code>ViewStubProxy</code> 上，在 binding 建立之后， listener 就会被触发。</p>
+
+<h3>高级 binding</h3>
+
+<h4>动态变量</h4>
+
+<p>有时候，有一些不可知的 binding 类。例如，<a href="http://developer.android.com/reference/android/support/v7/widget/RecyclerView.Adapter.html"><code>RecyclerView.Adapter</code></a> 可以用来处理不同布局，这样的话它就不知道应该使用哪一个 binding 类。而在 <a href="http://developer.android.com/reference/android/support/v7/widget/RecyclerView.Adapter.html#onBindViewHolder(VH,%20int"><code>onBindViewHolder(VH, int)</code></a>) 的时候，binding 类必须被赋值。</p>
+
+<p>在这种情况下，RecyclerView 的布局内置了一个 item 变量。<code>BindingHolder</code> 有一个 <code>getBinding</code> 方法，返回一个 <a href="http://developer.android.com/reference/android/databinding/ViewDataBinding.html"><code>ViewDataBinding</code></a> 基类。</p>
+
+<pre><code>public void onBindViewHolder(BindingHolder holder, int position) {
+   final T item = mItems.get(position);
+   holder.getBinding().setVariable(BR.item, item);
+   holder.getBinding().executePendingBindings();
+}
+</code></pre>
+
+<h4>直接 binding</h4>
+
+<p>当变量或者 observable 发生变动时，会在下一帧触发 binding。有时候 binding 需要马上执行，这时候可以使用 <a href="http://developer.android.com/reference/android/databinding/ViewDataBinding.html#executePendingBindings("><code>executePendingBindings()</code></a>)。</p>
+
+<h4>后台线程</h4>
+
+<p>只要数据不是容器类，你可以直接在后台线程做数据变动。Data binding 会将变量/域转为局部量，避免同步问题。</p>
+
+<h2>属性 Setter</h2>
+
+<p>当绑定数据发生变动时，生成的 binding 类必须根据 binding 表达式调用 View 的 setter 函数。Data binding 框架内置了几种自定义赋值的方法。</p>
+
+<h3>自动 Setter</h3>
+
+<p>对一个 attribute 来说，data binding 会尝试寻找对应的 setAttribute 函数。属性的命名空间不会对这个过程产生影响，只有属性的命名才是决定因素。</p>
+
+<p>举个例子，针对一个与 TextView 的 <code>android:text</code> 绑定的表达式，data binding会自动寻找 <code>setText(String)</code> 函数。如果表达式返回值为 int 类型， data binding则会寻找 <code>setText(int)</code> 函数。所以需要小心处理函数的返回值类型，必要的时候使用强制类型转换。需要注意的是，data binding 在对应名称的属性不存在的时候也能继续工作。你可以轻而易举地使用 data binding 为任何 setter “创建” 属性。举个例子，support 库中的 DrawerLayout 并没有任何属性，但是有很多 setter，所以你可以使用自动 setter 的特性来调用这些函数。</p>
+
+<pre><code>&lt;android.support.v4.widget.DrawerLayout
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    app:scrimColor="@{@color/scrim}"
+    app:drawerListener="@{fragment.drawerListener}"/&gt;
+</code></pre>
+
+<h3>重命名 Setter</h3>
+
+<p>一些属性的命名与 setter 不对应。针对这些函数，可以用 <a href="http://developer.android.com/reference/android/databinding/BindingMethods.html"><code>BindingMethods</code></a> 注解来将属性与 setter 绑定在一起。举个例子，<code>android:tint</code> 属性可以这样与 <a href="http://developer.android.com/reference/android/widget/ImageView.html#setImageTintList(android.content.res.ColorStateList"><code>setImageTintList(ColorStateList)</code></a>) 绑定，而不是 <code>setTint</code>:</p>
+
+<pre><code>@BindingMethods({
+       @BindingMethod(type = "android.widget.ImageView",
+                      attribute = "android:tint",
+                      method = "setImageTintList"),
+})
+</code></pre>
+
+<p>Android 框架中的 setter 重命名已经在库中实现了，开发者只需要专注于自己的 setter。</p>
+
+<h3>自定义 Setter</h3>
+
+<p>一些属性需要自定义 setter 逻辑。例如，目前没有与 <code>android:paddingLeft</code> 对应的 setter，只有一个 <code>setPadding(left, top, right, bottom)</code> 函数。结合静态 binding adapter 函数与 <a href="http://developer.android.com/reference/android/databinding/BindingAdapter.html"><code>BindingAdapter</code></a> 注解可以让开发者自定义属性 setter。</p>
+
+<p>Android 属性已经内置一些 BindingAdapter。例如，这是一个 <code>paddingLeft</code> 的自定义 setter：</p>
+
+<pre><code>@BindingAdapter("android:paddingLeft")
+public static void setPaddingLeft(View view, int padding) {
+   view.setPadding(padding,
+                   view.getPaddingTop(),
+                   view.getPaddingRight(),
+                   view.getPaddingBottom());
+}
+</code></pre>
+
+<p>Binding adapter 在其他自定义类型上也很好用。举个例子，一个 loader 可以在非主线程加载图片。</p>
+
+<p>当存在冲突时，开发者创建的 binding adapter 会覆盖 data binding 的默认 adapter。</p>
+
+<p>你也可以创建多个参数的 adapter：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>@BindingAdapter({"bind:imageUrl", "bind:error"})
+</span><span class='line'>public static void loadImage(ImageView view, String url, Drawable error) {
+</span><span class='line'>   Picasso.with(view.getContext()).load(url).error(error).into(view);
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;ImageView app:imageUrl=“@{venue.imageUrl}”
+</span><span class='line'>app:error=“@{@drawable/venueError}”/&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>当 <strong>imageUrl</strong> 与 <strong>error</strong> 存在时这个 adapter 会被调用。imageUrl 是一个 String，error 是一个 Drawable。</p>
+
+<ul>
+<li>在匹配时自定义命名空间会被忽略</li>
+<li>你可以为 android 命名空间编写 adapter</li>
+</ul>
+
+
+<p>Binding adapter 方法可以获取旧的赋值。只需要将旧值放置在前，新值放置在后：</p>
+
+<pre><code>@BindingAdapter("android:paddingLeft")
+public static void setPaddingLeft(View view, int oldPadding, int newPadding) {
+   if (oldPadding != newPadding) {
+       view.setPadding(newPadding,
+                       view.getPaddingTop(),
+                       view.getPaddingRight(),
+                       view.getPaddingBottom());
+   }
+}
+</code></pre>
+
+<p>事件 handler 仅可用于只拥有一个抽象方法的接口或者抽象类。例如：</p>
+
+<pre><code>@BindingAdapter("android:onLayoutChange")
+public static void setOnLayoutChangeListener(View view, View.OnLayoutChangeListener oldValue,
+       View.OnLayoutChangeListener newValue) {
+    if (Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.HONEYCOMB) {
+        if (oldValue != null) {
+            view.removeOnLayoutChangeListener(oldValue);
+        }
+        if (newValue != null) {
+            view.addOnLayoutChangeListener(newValue);
+        }
+    }
+}
+</code></pre>
+
+<p>当 listener 内置多个函数时，必须分割成多个 listener。例如，<a href="http://developer.android.com/reference/android/view/View.OnAttachStateChangeListener.html"><code>View.OnAttachStateChangeListener</code></a> 内置两个函数：<a href="http://developer.android.com/reference/android/view/View.OnAttachStateChangeListener.html#onViewAttachedToWindow(android.view.View"><code>onViewAttachedToWindow()</code></a>) 与 <a href="http://developer.android.com/reference/android/view/View.OnAttachStateChangeListener.html#onViewDetachedFromWindow(android.view.View"><code>onViewDetachedFromWindow()</code></a>)。在这里必须为两个不同的属性创建不同的接口。</p>
+
+<pre><code>@TargetApi(VERSION_CODES.HONEYCOMB_MR1)
+public interface OnViewDetachedFromWindow {
+    void onViewDetachedFromWindow(View v);
+}
+
+@TargetApi(VERSION_CODES.HONEYCOMB_MR1)
+public interface OnViewAttachedToWindow {
+    void onViewAttachedToWindow(View v);
+}
+</code></pre>
+
+<p>因为改变一个 listener 会影响到另外一个，我们必须编写三个不同的 adapter，包括修改一个属性的，和修改两个属性的。</p>
+
+<pre><code>@BindingAdapter("android:onViewAttachedToWindow")
+public static void setListener(View view, OnViewAttachedToWindow attached) {
+    setListener(view, null, attached);
+}
+
+@BindingAdapter("android:onViewDetachedFromWindow")
+public static void setListener(View view, OnViewDetachedFromWindow detached) {
+    setListener(view, detached, null);
+}
+
+@BindingAdapter({"android:onViewDetachedFromWindow", "android:onViewAttachedToWindow"})
+public static void setListener(View view, final OnViewDetachedFromWindow detach,
+        final OnViewAttachedToWindow attach) {
+    if (VERSION.SDK_INT &gt;= VERSION_CODES.HONEYCOMB_MR1) {
+        final OnAttachStateChangeListener newListener;
+        if (detach == null &amp;&amp; attach == null) {
+            newListener = null;
+        } else {
+            newListener = new OnAttachStateChangeListener() {
+                @Override
+                public void onViewAttachedToWindow(View v) {
+                    if (attach != null) {
+                        attach.onViewAttachedToWindow(v);
+                    }
+                }
+
+                @Override
+                public void onViewDetachedFromWindow(View v) {
+                    if (detach != null) {
+                        detach.onViewDetachedFromWindow(v);
+                    }
+                }
+            };
+        }
+        final OnAttachStateChangeListener oldListener = ListenerUtil.trackListener(view,
+                newListener, R.id.onAttachStateChangeListener);
+        if (oldListener != null) {
+            view.removeOnAttachStateChangeListener(oldListener);
+        }
+        if (newListener != null) {
+            view.addOnAttachStateChangeListener(newListener);
+        }
+    }
+}
+</code></pre>
+
+<p>上面的例子比普通情况下复杂，因为 View 是 add/remove <a href="http://developer.android.com/reference/android/view/View.OnAttachStateChangeListener.html"><code>View.OnAttachStateChangeListener</code></a> 而不是 set。<code>android.databinding.adapters.ListenerUtil</code> 可以用来辅助跟踪旧的 listener 并移除它。</p>
+
+<p>对应 <a href="http://developer.android.com/reference/android/view/View.html#addOnAttachStateChangeListener(android.view.View.OnAttachStateChangeListener"><code>addOnAttachStateChangeListener(View.OnAttachStateChangeListener)</code></a>) 支持的 api 版本，通过向 <code>OnViewDetachedFromWindow</code> 和 <code>OnViewAttachedToWindow</code> 添加 <code>@TargetApi(VERSION_CODES.HONEYCHOMB_MR1)</code> 注解，data binding 代码生成器会知道这些 listener 只会在 Honeycomb MR1 或更新的设备上使用。</p>
+
+<h2>转换器</h2>
+
+<h3>对象转换</h3>
+
+<p>当 binding 表达式返回对象时，会选择一个 setter（自动 Setter，重命名 Setter，自定义 Setter），将返回对象强制转换成 setter 需要的类型。</p>
+
+<p>下面是一个使用 ObservableMap 保存数据的例子：</p>
+
+<pre><code>&lt;TextView
+   android:text='@{userMap["lastName"]}'
+   android:layout_width="wrap_content"
+   android:layout_height="wrap_content"/&gt;
+</code></pre>
+
+<p>在这里，<code>userMap</code> 会返回 Object 类型的值，而返回值会被自动转换成 <code>setText(CharSequence)</code> 所需要的类型。当对参数类型存在疑惑时，开发者需要手动做类型转换。</p>
+
+<h3>自定义转换</h3>
+
+<p>有时候会自动在特定类型直接做类型转换。例如，当设置背景的时候：</p>
+
+<pre><code>&lt;View
+   android:background="@{isError ? @color/red : @color/white}"
+   android:layout_width="wrap_content"
+   android:layout_height="wrap_content"/&gt;
+</code></pre>
+
+<p>在这里，背景需要的是 <code>Drawable</code>，但是 color 是一个整数。当需要 <code>Drawable</code> 却返回了一个整数时，<code>int</code> 会自动转换成 <code>ColorDrawable</code>。这个转换是在一个 BindingConversation 注解的静态函数中实现：</p>
+
+<p>@BindingConversion
+public static ColorDrawable convertColorToDrawable(int color) {
+   return new ColorDrawable(color);
+}</p>
+
+<p>需要注意的是，这个转换只能在 setter 阶段生效，所以 <strong>不允许</strong> 混合类型：</p>
+
+<pre><code>&lt;View
+   android:background="@{isError ? @drawable/error : @color/white}"
+   android:layout_width="wrap_content"
+   android:layout_height="wrap_content"/&gt;
+</code></pre>
+
+<h3>Android Studio 对 Data binding 的支持</h3>
+
+<p>Android Studio 支持 data binding 表达式的高亮，并会在编辑器中标出表达式中的语法错误。</p>
+
+<p>在预览窗口显示的是 data binding 表达式的默认值。下面是一个设置默认值的例子，<code>TextView</code> 的 text 默认值为 <code>PLACEHOLDER</code>。</p>
+
+<pre><code>&lt;TextView android:layout_width="wrap_content"
+   android:layout_height="wrap_content"
+   android:text="@{user.firstName, default=PLACEHOLDER}"/&gt;
+</code></pre>
+
+<p>如果你需要在设计阶段显示默认值，你可以使用 tools 属性代替默认值表达式，详见<a href="http://tools.android.com/tips/layout-designtime-attributes">设计阶段布局属性</a>。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Fragment Recreate(2)]]></title>

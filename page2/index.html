@@ -5,14 +5,12 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Blog Archive - 杨辉的个人博客</title>
+  <title>杨辉的个人博客</title>
   <meta name="author" content="杨辉">
 
   
-  <meta name="description" content="Blog Archive 2016 (译)Data Binding 指南
-Feb 17 2016 2015 Fragment Recreate(2)
-Sep 28 2015 Fragment Recreate(1)
-Sep 27 2015 posted in android Tools &hellip;">
+  <meta name="description" content="在android 2.3,解析bitmap的时候，不能用RGBA8888格式解析图片成bitmap，只能解析成RGB565,就算加了Config也一样。
+在android google code project上的解释是这样的：https://code.google.com/p/android/ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -21,7 +19,7 @@ Sep 27 2015 posted in android Tools &hellip;">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://yanghui.name/blog/archives">
+  <link rel="canonical" href="http://yanghui.name/page2">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="杨辉的个人博客" type="application/atom+xml">
@@ -71,167 +69,80 @@ Sep 27 2015 posted in android Tools &hellip;">
 </nav>
   <div id="main">
     <div id="content">
-      <div>
-<article role="article">
+      <div class="blog-index">
   
+  
+  
+    <article>
+      
   <header>
-    <h1 class="entry-title">Blog Archive</h1>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/03/fix-android-2-dot-3-can-not-decode-bitmap-in-rgba8888/">修复android 2.3 不能以RGBA8888格式解析图片的问题</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2013-09-03T22:58:00+08:00" pubdate data-updated="true">Sep 3rd, 2013</time>
+        
+           | <a href="/blog/2013/09/03/fix-android-2-dot-3-can-not-decode-bitmap-in-rgba8888/#disqus_thread"
+             data-disqus-identifier="http://yanghui.name/blog/2013/09/03/fix-android-2-dot-3-can-not-decode-bitmap-in-rgba8888/">Comments</a>
+        
+      </p>
     
   </header>
-  
-  <div id="blog-archives">
 
 
+  <div class="entry-content"><p>在android 2.3,解析bitmap的时候，不能用RGBA8888格式解析图片成bitmap，只能解析成RGB565,就算加了Config也一样。
+在android google code project上的解释是这样的：<a href="https://code.google.com/p/android/issues/detail?id=13038">https://code.google.com/p/android/issues/detail?id=13038</a> <br/>
+大致意思就是，原本记录了这个issue，然后被脚本自动标记为close了，导致这个bug没有修复。好吧，看来只能自己解决这个问题了。
+在网上搜了一番，偶然发现一个曲线救国的方法。</p>
 
-  
-  <h2>2016</h2>
+<div><script src='https://gist.github.com/7408999.js?file=convertBitmap.java'></script>
+<noscript><pre><code>public static Bitmap convert(Bitmap bitmap, Bitmap.Config config) {
+    Bitmap convertedBitmap = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), config);
+    Canvas canvas = new Canvas(convertedBitmap);
+    Paint paint = new Paint();
+    paint.setColor(Color.BLACK);
+    canvas.drawBitmap(bitmap, 0, 0, paint);
+    return convertedBitmap;
+}</code></pre></noscript></div>
 
-<article>
-  
-<h1><a href="/blog/2016/02/17/data-binding-guide/">(译)Data Binding 指南</a></h1>
-<time datetime="2016-02-17T18:32:59+08:00" pubdate><span class='month'>Feb</span> <span class='day'>17</span> <span class='year'>2016</span></time>
 
+<p>这个函数是最近在研究zxing解析本地图片时候发现的，突然发现这个函数貌似能用与解决不能解析为RGBA8888的bug，在测试之后，果然生效了。使用方法如下：</p>
 
-</article>
+<pre><code>Bitmap bitmap = convert(bitmap, Bitmap.Config.ARGB_8888);
+</code></pre>
 
-
-
-  
-  <h2>2015</h2>
-
-<article>
-  
-<h1><a href="/blog/2015/09/28/fragment-recreate-2/">Fragment Recreate(2)</a></h1>
-<time datetime="2015-09-28T19:44:54+08:00" pubdate><span class='month'>Sep</span> <span class='day'>28</span> <span class='year'>2015</span></time>
-
-
-</article>
-
-
-
-<article>
-  
-<h1><a href="/blog/2015/09/27/fragment-recreate-1/">Fragment Recreate(1)</a></h1>
-<time datetime="2015-09-27T11:14:15+08:00" pubdate><span class='month'>Sep</span> <span class='day'>27</span> <span class='year'>2015</span></time>
-
-<footer>
-  <span class="categories">posted in <a class='category' href='/blog/categories/android/'>android</a></span>
-</footer>
-
-
-</article>
-
-
-
-<article>
-  
-<h1><a href="/blog/2015/08/31/tools-namespace-and-support-library-annotations/">Tools 命名空间的使用与 Support Library Annotations 介绍</a></h1>
-<time datetime="2015-08-31T23:33:09+08:00" pubdate><span class='month'>Aug</span> <span class='day'>31</span> <span class='year'>2015</span></time>
-
-
-</article>
-
-
-
-<article>
-  
-<h1><a href="/blog/2015/07/19/make-all-command-through-proxy/">Terminal 代理方案</a></h1>
-<time datetime="2015-07-19T22:03:31+08:00" pubdate><span class='month'>Jul</span> <span class='day'>19</span> <span class='year'>2015</span></time>
-
-
-</article>
-
-
-
-<article>
-  
-<h1><a href="/blog/2015/06/19/why-is-listviews-headerview-slash-footerview-setvisibility-view-dot-gone-not-working/">Why Is ListView&#8217;s HeaderView/FooterView setVisibility(View.GONE) Not Working?</a></h1>
-<time datetime="2015-06-19T18:14:54+08:00" pubdate><span class='month'>Jun</span> <span class='day'>19</span> <span class='year'>2015</span></time>
-
-
-</article>
-
-
-
-<article>
-  
-<h1><a href="/blog/2015/05/19/view-and-viewgroups-measure-layout-and-draw/">View and ViewGroup&#8217;s Measure Layout and Draw</a></h1>
-<time datetime="2015-05-19T16:35:34+08:00" pubdate><span class='month'>May</span> <span class='day'>19</span> <span class='year'>2015</span></time>
-
-<footer>
-  <span class="categories">posted in <a class='category' href='/blog/categories/android/'>android</a></span>
-</footer>
-
-
-</article>
-
-
-
-<article>
-  
-<h1><a href="/blog/2015/02/01/2015-1-31-ali-technical-salon/">2015-1-31 阿里技术沙龙 - Android应用性能优化实践</a></h1>
-<time datetime="2015-02-01T11:42:04+08:00" pubdate><span class='month'>Feb</span> <span class='day'>01</span> <span class='year'>2015</span></time>
-
-<footer>
-  <span class="categories">posted in <a class='category' href='/blog/categories/android/'>android</a></span>
-</footer>
-
-
-</article>
-
-
-
-<article>
-  
-<h1><a href="/blog/2015/01/20/android-developer-tools/">Android Developer Tools（开发人员工具）</a></h1>
-<time datetime="2015-01-20T15:01:18+08:00" pubdate><span class='month'>Jan</span> <span class='day'>20</span> <span class='year'>2015</span></time>
-
-<footer>
-  <span class="categories">posted in <a class='category' href='/blog/categories/android/'>android</a></span>
-</footer>
-
-
-</article>
-
-
-
-  
-  <h2>2013</h2>
-
-<article>
-  
-<h1><a href="/blog/2013/10/17/managing-touch-events-in-a-viewgroup/">(译)在ViewGroup中处理Touch Events</a></h1>
-<time datetime="2013-10-17T00:18:00+08:00" pubdate><span class='month'>Oct</span> <span class='day'>17</span> <span class='year'>2013</span></time>
-
-<footer>
-  <span class="categories">posted in <a class='category' href='/blog/categories/android/'>android,</a>, <a class='category' href='/blog/categories/translate/'>translate</a></span>
-</footer>
-
-
-</article>
-
-
-
-<article>
-  
-<h1><a href="/blog/2013/09/03/fix-android-2-dot-3-can-not-decode-bitmap-in-rgba8888/">修复android 2.3 不能以RGBA8888格式解析图片的问题</a></h1>
-<time datetime="2013-09-03T22:58:00+08:00" pubdate><span class='month'>Sep</span> <span class='day'>03</span> <span class='year'>2013</span></time>
-
-<footer>
-  <span class="categories">posted in <a class='category' href='/blog/categories/android/'>android</a></span>
-</footer>
-
-
-</article>
-
+<p>这个函数用的也是很曲线救国的方法了，用canvas将原来的bitmap画到属性为RGBA8888的空bitmap上，成功绕过了android 2.3不能直接解析为RGBA8888的bug。<br/>
+（吐槽：做android开发越久越觉得android坑啊……）</p>
 </div>
-
   
-</article>
+  
 
+
+    </article>
+  
+  <div class="pagination">
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+    <a class="next" href="1">Newer &rarr;</a>
+    
+  </div>
 </div>
-
-  <aside class="sidebar">
+<aside class="sidebar">
    
 <form action="http://google.com/search" method="get">
   <fieldset role="search">
@@ -336,7 +247,6 @@ Sep 27 2015 posted in android Tools &hellip;">
 
   
 </aside>
-
 
 
     </div>
